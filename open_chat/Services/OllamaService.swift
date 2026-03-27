@@ -129,6 +129,65 @@ class OllamaService {
             throw error
         }
     }
+
+    func getModelDetails(name: String) async throws -> OllamaModelDetails {
+        let urlString = "\(baseURL)/show"
+        print("Attempting to fetch model details for: \(name)")
+
+        guard let url = URL(string: urlString) else {
+            print("Invalid URL for model details: \(urlString)")
+            throw URLError(.badURL)
+        }
+
+        let requestBody: [String: Any] = [
+            "name": name
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // Add API key if available
+        if let apiKey = UserDefaults.standard.string(forKey: "apiKey"),
+           !apiKey.isEmpty {
+            request.setValue(apiKey, forHTTPHeaderField: "Authorization")
+        }
+
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            print("Failed to serialize request body for model details")
+            throw URLError(.cannotParseResponse)
+        }
+
+        request.httpBody = jsonData
+
+        do {
+            print("Fetching model details from Ollama...")
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            // Print response info for debugging
+            if let httpResponse = response as? HTTPURLResponse {
+                print("Model details HTTP Status: \(httpResponse.statusCode)")
+            }
+
+            // Print raw response data for debugging
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Raw model details response: \(responseString)")
+            }
+
+            let modelDetails = try JSONDecoder().decode(OllamaModelDetails.self, from: data)
+            print("Successfully fetched details for model: \(name)")
+
+            // Print decoded details for debugging
+            print("Decoded model details - License: \(String(describing: modelDetails.license?.prefix(100)))")
+            print("Decoded model details - Parameters: \(String(describing: modelDetails.parameters?.prefix(100)))")
+            print("Decoded model details - Modelfile: \(String(describing: modelDetails.modelfile?.prefix(100)))")
+
+            return modelDetails
+        } catch {
+            print("Error fetching model details: \(error)")
+            throw error
+        }
+    }
 }
 
 struct OllamaChatResponse: Codable {
@@ -146,6 +205,96 @@ struct OllamaModel: Codable {
     let name: String
     let modified_at: String
     let size: Int
+}
+
+// Detailed model information from Ollama API
+struct OllamaModelDetails: Codable {
+    let license: String?
+    let modelfile: String?
+    let parameters: String?
+    let template: String?
+    let details: ModelDetails?
+    let model_info: [String: JSONValue]?
+    let capabilities: Capabilities?
+
+    enum CodingKeys: String, CodingKey {
+        case license, modelfile, parameters, template, details
+        case model_info = "model_info"
+        case capabilities
+    }
+}
+
+struct ModelDetails: Codable {
+    let format: String?
+    let family: String?
+    let families: [String]?
+    let parameter_size: String?
+    let quantization_level: String?
+
+    enum CodingKeys: String, CodingKey {
+        case format, family, families
+        case parameter_size = "parameter_size"
+        case quantization_level = "quantization_level"
+    }
+}
+
+struct Capabilities: Codable {
+    let completion: Bool?
+    let vision: Bool?
+    let tools: Bool?
+}
+
+// Generic JSON value type for handling dynamic model_info content
+enum JSONValue: Codable {
+    case string(String)
+    case int(Int)
+    case double(Double)
+    case bool(Bool)
+    case object([String: JSONValue])
+    case array([JSONValue])
+    case null
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+
+        if let stringValue = try? container.decode(String.self) {
+            self = .string(stringValue)
+        } else if let intValue = try? container.decode(Int.self) {
+            self = .int(intValue)
+        } else if let doubleValue = try? container.decode(Double.self) {
+            self = .double(doubleValue)
+        } else if let boolValue = try? container.decode(Bool.self) {
+            self = .bool(boolValue)
+        } else if container.decodeNil() {
+            self = .null
+        } else if let objectValue = try? container.decode([String: JSONValue].self) {
+            self = .object(objectValue)
+        } else if let arrayValue = try? container.decode([JSONValue].self) {
+            self = .array(arrayValue)
+        } else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unable to decode JSON value")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .string(let value):
+            try container.encode(value)
+        case .int(let value):
+            try container.encode(value)
+        case .double(let value):
+            try container.encode(value)
+        case .bool(let value):
+            try container.encode(value)
+        case .object(let value):
+            try container.encode(value)
+        case .array(let value):
+            try container.encode(value)
+        case .null:
+            try container.encodeNil()
+        }
+    }
 }
 
 struct OllamaModelsResponse: Codable {

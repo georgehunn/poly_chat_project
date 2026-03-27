@@ -68,7 +68,7 @@ struct ChatRowView: View {
         VStack(alignment: .leading) {
             Text(conversation.title)
                 .font(.headline)
-            Text(conversation.lastMessage ?? "New conversation")
+            Text("Model: \(conversation.model.displayName)")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .lineLimit(1)

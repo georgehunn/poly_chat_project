@@ -8,7 +8,7 @@ struct Conversation: Identifiable, Codable {
     var updatedAt: Date
     var model: ModelInfo
 
-    init(title: String = "New Conversation", model: ModelInfo = ModelInfo.default) {
+    init(title: String = "New Conversation", model: ModelInfo) {
         self.id = UUID()
         self.title = title
         self.messages = []
@@ -42,10 +42,38 @@ struct ModelInfo: Codable, Hashable {
     let provider: String
     let capabilities: [String]
 
-    static let `default` = ModelInfo(
-        name: "llama3",
-        displayName: "Llama 3",
-        provider: "Ollama",
-        capabilities: ["text-generation"]
-    )
+    // Detailed model information
+    let description: String?
+    let parameterSize: String?
+    let quantizationLevel: String?
+    let family: String?
+    let contextLength: Int?
+    let hasVision: Bool?
+    let hasTools: Bool?
+
+    init(
+        name: String,
+        displayName: String,
+        provider: String,
+        capabilities: [String],
+        description: String? = nil,
+        parameterSize: String? = nil,
+        quantizationLevel: String? = nil,
+        family: String? = nil,
+        contextLength: Int? = nil,
+        hasVision: Bool? = nil,
+        hasTools: Bool? = nil
+    ) {
+        self.name = name
+        self.displayName = displayName
+        self.provider = provider
+        self.capabilities = capabilities
+        self.description = description
+        self.parameterSize = parameterSize
+        self.quantizationLevel = quantizationLevel
+        self.family = family
+        self.contextLength = contextLength
+        self.hasVision = hasVision
+        self.hasTools = hasTools
+    }
 }

@@ -2,14 +2,20 @@ import SwiftUI
 
 struct ModelSelectionView: View {
     @EnvironmentObject private var modelManager: ModelManager
-    @Binding var selectedModel: ModelInfo?
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject private var chatManager: ChatManager
+
+    var onModelSelected: ((ModelInfo) -> Void)?
+
+    init(onModelSelected: ((ModelInfo) -> Void)? = nil) {
+        self.onModelSelected = onModelSelected
+    }
 
     var body: some View {
         NavigationView {
             List {
-                Section(header: Text("Available Models")) {
-                    if modelManager.models.isEmpty {
+                Section(header: Text("Select a Model")) {
+                    if modelManager.isLoading {
                         HStack {
                             Spacer()
                             VStack {
@@ -21,11 +27,13 @@ struct ModelSelectionView: View {
                             Spacer()
                         }
                         .padding()
+                    } else if modelManager.models.isEmpty {
+                        Text("No models available")
+                            .foregroundColor(.secondary)
                     } else {
                         ForEach(modelManager.models, id: \.name) { model in
                             Button(action: {
-                                selectedModel = model
-                                presentationMode.wrappedValue.dismiss()
+                                selectModel(model)
                             }) {
                                 HStack {
                                     VStack(alignment: .leading) {
@@ -37,42 +45,35 @@ struct ModelSelectionView: View {
                                     }
 
                                     Spacer()
-
-                                    if selectedModel?.name == model.name {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.blue)
-                                    }
                                 }
                             }
                         }
                     }
                 }
-
-                if !modelManager.models.isEmpty {
-                    Section(header: Text("Model Information")) {
-                        if let model = selectedModel {
-                            Text("Selected: \(model.displayName)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("No model selected")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
             }
-            .navigationTitle("Select Model")
+            .navigationTitle("Choose Model")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
             }
-            .onAppear {
+        }
+        .onAppear {
+            if modelManager.models.isEmpty && !modelManager.isLoading {
                 modelManager.loadModels()
             }
         }
+    }
+
+    private func selectModel(_ model: ModelInfo) {
+        if let onModelSelected = onModelSelected {
+            onModelSelected(model)
+        } else {
+            // Default behavior: create new conversation
+            let newConversation = chatManager.createNewConversation(model: model)
+        }
+        presentationMode.wrappedValue.dismiss()
     }
 }

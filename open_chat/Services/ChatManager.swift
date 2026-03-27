@@ -17,7 +17,7 @@ class ChatManager: ObservableObject {
         conversations = storageService.loadConversations()
     }
 
-    func createNewConversation(model: ModelInfo = ModelInfo.default) -> Conversation {
+    func createNewConversation(model: ModelInfo) -> Conversation {
         let randomName = NameGenerationService.shared.generateRandomName()
         let newConversation = Conversation(title: randomName, model: model)
         conversations.insert(newConversation, at: 0)

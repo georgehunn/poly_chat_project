@@ -5,8 +5,8 @@ struct ContentView: View {
     @EnvironmentObject private var modelManager: ModelManager
     @State private var showingSettings = false
     @State private var showingModels = false
+    @State private var showingModelSelection = false
     @State private var selectedConversationId: UUID?
-    @State private var selectedModel: ModelInfo? = ModelInfo.default
 
     var body: some View {
         NavigationView {
@@ -15,11 +15,8 @@ struct ContentView: View {
                 .navigationBarItems(
                     leading: HStack {
                         Button(action: {
-                            // New chat action
-                            let newConversation = chatManager.createNewConversation(
-                                model: selectedModel ?? ModelInfo.default
-                            )
-                            selectedConversationId = newConversation.id
+                            // Show model selection for new chat
+                            showingModelSelection = true
                         }) {
                             Image(systemName: "square.and.pencil")
                         }
@@ -41,9 +38,17 @@ struct ContentView: View {
                 }
                 .sheet(isPresented: $showingModels) {
                     NavigationView {
-                        ModelsView(selectedModel: $selectedModel)
+                        ModelsView(selectedModel: .constant(nil))
                             .environmentObject(modelManager)
                     }
+                }
+                .sheet(isPresented: $showingModelSelection) {
+                    ModelSelectionView() { selectedModel in
+                        let newConversation = chatManager.createNewConversation(model: selectedModel)
+                        selectedConversationId = newConversation.id
+                    }
+                    .environmentObject(modelManager)
+                    .environmentObject(chatManager)
                 }
 
             // Empty state when no conversation is selected (this will be hidden when using NavigationLink)
