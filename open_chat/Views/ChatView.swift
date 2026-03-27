@@ -13,6 +13,15 @@ struct ChatView: View {
     var body: some View {
         VStack {
             if let conversation = conversation {
+                // Display model information
+                HStack {
+                    Text("Model: \(conversation.model.displayName) (\(conversation.model.provider))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal)
+
                 ScrollView {
                     LazyVStack {
                         ForEach(conversation.messages) { message in

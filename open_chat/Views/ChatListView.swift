@@ -3,6 +3,9 @@ import SwiftUI
 struct ChatListView: View {
     @EnvironmentObject private var chatManager: ChatManager
     @Binding var selectedConversationId: UUID?
+    @State private var showingRenameAlert = false
+    @State private var conversationToRename: Conversation?
+    @State private var newConversationName = ""
 
     init(selectedConversationId: Binding<UUID?>) {
         _selectedConversationId = selectedConversationId
@@ -17,6 +20,16 @@ struct ChatListView: View {
                     selection: $selectedConversationId
                 ) {
                     ChatRowView(conversation: conversation, isSelected: conversation.id == selectedConversationId)
+                        .contextMenu {
+                            Button("Rename") {
+                                conversationToRename = conversation
+                                newConversationName = conversation.title
+                                showingRenameAlert = true
+                            }
+                            Button("Delete") {
+                                chatManager.deleteConversation(conversation)
+                            }
+                        }
                 }
                 .buttonStyle(PlainButtonStyle()) // This makes it look like a regular list row
             }
@@ -24,6 +37,17 @@ struct ChatListView: View {
         }
         .refreshable {
             // Refresh conversations
+        }
+        .alert("Rename Conversation", isPresented: $showingRenameAlert) {
+            TextField("Conversation name", text: $newConversationName)
+            Button("Cancel", role: .cancel) { }
+            Button("Rename") {
+                if let conversation = conversationToRename {
+                    chatManager.renameConversation(conversation, to: newConversationName)
+                }
+            }
+        } message: {
+            Text("Enter a new name for the conversation")
         }
     }
 

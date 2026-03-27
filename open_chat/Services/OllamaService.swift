@@ -1,4 +1,5 @@
 import Foundation
+@testable import open_chat
 
 class OllamaService {
     static let shared = OllamaService()
@@ -28,8 +29,8 @@ class OllamaService {
         return "http://localhost:11434/api"
     }
 
-    func generateResponse(message: String, model: String) async throws -> String {
-        let urlString = "\(baseURL)/generate"
+    func generateChatResponse(messages: [Message], model: String) async throws -> String {
+        let urlString = "\(baseURL)/chat"
         print("Attempting to connect to: \(urlString)")
 
         guard let url = URL(string: urlString) else {
@@ -37,9 +38,17 @@ class OllamaService {
             throw URLError(.badURL)
         }
 
+        // Convert messages to the format expected by Ollama chat API
+        let ollamaMessages = messages.map { message -> [String: String] in
+            return [
+                "role": message.role.rawValue,
+                "content": message.content
+            ]
+        }
+
         let requestBody: [String: Any] = [
             "model": model,
-            "prompt": message,
+            "messages": ollamaMessages,
             "stream": false
         ]
 
@@ -76,11 +85,11 @@ class OllamaService {
                 print("Response data: \(responseString)")
             }
 
-            let ollamaResponse = try JSONDecoder().decode(OllamaResponse.self, from: data)
-            print("Successfully received response: \(ollamaResponse.response)")
-            return ollamaResponse.response
+            let ollamaResponse = try JSONDecoder().decode(OllamaChatResponse.self, from: data)
+            print("Successfully received response: \(ollamaResponse.message.content)")
+            return ollamaResponse.message.content
         } catch {
-            print("Error in generateResponse: \(error)")
+            print("Error in generateChatResponse: \(error)")
             throw error
         }
     }
@@ -122,10 +131,15 @@ class OllamaService {
     }
 }
 
-struct OllamaResponse: Codable {
+struct OllamaChatResponse: Codable {
     let model: String
-    let response: String
+    let message: OllamaMessage
     let done: Bool
+}
+
+struct OllamaMessage: Codable {
+    let role: String
+    let content: String
 }
 
 struct OllamaModel: Codable {

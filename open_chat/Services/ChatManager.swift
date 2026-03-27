@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+@testable import open_chat
 
 class ChatManager: ObservableObject {
     @Published var conversations: [Conversation] = []
@@ -16,8 +17,9 @@ class ChatManager: ObservableObject {
         conversations = storageService.loadConversations()
     }
 
-    func createNewConversation(title: String = "New Conversation", model: ModelInfo = ModelInfo.default) -> Conversation {
-        let newConversation = Conversation(title: title, model: model)
+    func createNewConversation(model: ModelInfo = ModelInfo.default) -> Conversation {
+        let randomName = NameGenerationService.shared.generateRandomName()
+        let newConversation = Conversation(title: randomName, model: model)
         conversations.insert(newConversation, at: 0)
         storageService.saveConversations(conversations)
         return newConversation
@@ -25,6 +27,16 @@ class ChatManager: ObservableObject {
 
     func deleteConversation(_ conversation: Conversation) {
         conversations.removeAll { $0.id == conversation.id }
+        storageService.saveConversations(conversations)
+    }
+
+    func renameConversation(_ conversation: Conversation, to newName: String) {
+        guard let index = conversations.firstIndex(where: { $0.id == conversation.id }) else {
+            return
+        }
+
+        conversations[index].title = newName
+        conversations[index].updatedAt = Date()
         storageService.saveConversations(conversations)
     }
 
@@ -55,10 +67,10 @@ class ChatManager: ObservableObject {
         // Save to local storage
         storageService.saveConversations(conversations)
 
-        // Send to Ollama API
+        // Send to Ollama API with full conversation history
         do {
-            let response = try await OllamaService.shared.generateResponse(
-                message: message,
+            let response = try await OllamaService.shared.generateChatResponse(
+                messages: updatedConversation.messages,
                 model: conversation.model.name
             )
 

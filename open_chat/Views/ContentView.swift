@@ -17,7 +17,6 @@ struct ContentView: View {
                         Button(action: {
                             // New chat action
                             let newConversation = chatManager.createNewConversation(
-                                title: "New Conversation",
                                 model: selectedModel ?? ModelInfo.default
                             )
                             selectedConversationId = newConversation.id

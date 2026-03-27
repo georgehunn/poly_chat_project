@@ -10,9 +10,12 @@ OpenChat is a native iOS application that provides a seamless chat experience wi
 
 ## Features
 
-- 🤖 **Ollama Integration**: Connect to local or remote Ollama instances
-- 💬 **Chat Interface**: Modern, intuitive chat interface similar to ChatGPT
+- 🤖 **Ollama Integration**: Connect to local or remote Ollama instances with full conversation history support
+- 💬 **Chat Interface**: Modern, intuitive chat interface similar to ChatGPT with multi-turn conversation support
 - 🧠 **Model Selection**: Browse and select from available AI models
+- 👥 **Personalized Chats**: Each conversation gets a unique name from random boy/girl name lists
+- 🏷️ **Model Information**: View which AI model is being used in each conversation
+- ✏️ **Rename Conversations**: Long press to rename conversations to your preference
 - 🌙 **Dark Mode**: Built-in dark mode support
 - 🔒 **Privacy First**: All data stored locally on your device
 - 📤 **Data Export**: Export conversations as JSON
@@ -125,6 +128,10 @@ xcodebuild test -project open_chat.xcodeproj -scheme open_chat -destination 'pla
 3. **Keychain errors**
    - Ensure Security.framework is added to the project
    - Check entitlements
+
+4. **App Icon Issues**
+   - The app now includes all required icons including the 1024x1024 PNG for App Store submission
+   - If you encounter icon-related build errors, verify the Contents.json file in AppIcon.appiconset includes filename references
 
 ## Roadmap
 

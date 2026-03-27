@@ -51,7 +51,8 @@
     {
       "idiom" : "universal",
       "platform" : "ios",
-      "size" : "1024x1024"
+      "size" : "1024x1024",
+      "filename" : "AppIcon-1024.png"
     },
     {
       "appearances" : [
@@ -62,7 +63,8 @@
       ],
       "idiom" : "universal",
       "platform" : "ios",
-      "size" : "1024x1024"
+      "size" : "1024x1024",
+      "filename" : "AppIcon-1024-Dark.png"
     },
     {
       "appearances" : [
@@ -73,7 +75,8 @@
       ],
       "idiom" : "universal",
       "platform" : "ios",
-      "size" : "1024x1024"
+      "size" : "1024x1024",
+      "filename" : "AppIcon-1024-Tinted.png"
     },
     {
       "idiom" : "mac",
