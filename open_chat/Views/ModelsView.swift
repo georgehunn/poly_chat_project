@@ -58,6 +58,7 @@ struct ModelRowView: View {
                 Text(model.displayName)
                     .font(.headline)
 
+                // Provider and technical details
                 HStack(spacing: 6) {
                     Text(model.provider)
                         .font(.caption)
@@ -80,23 +81,45 @@ struct ModelRowView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
+
+                    if let family = model.family, !family.isEmpty {
+                        Text("•")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(family)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // Short description preview
+                if let description = model.description, !description.isEmpty {
+                    Text(description.prefix(100) + (description.count > 100 ? "..." : ""))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
                 }
             }
 
             Spacer()
 
             // Show capability badges
-            HStack(spacing: 4) {
-                if model.hasVision == true {
-                    Text("👁️")
-                        .font(.caption)
+            VStack(alignment: .trailing, spacing: 4) {
+                HStack(spacing: 4) {
+                    if model.hasVision == true {
+                        Text("👁️")
+                            .font(.caption)
+                    }
                 }
-                if model.hasTools == true {
-                    Text("🔧")
-                        .font(.caption)
+
+                // Context length indicator
+                if let contextLength = model.contextLength {
+                    Text("\(contextLength) tokens")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                 }
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
     }
 }

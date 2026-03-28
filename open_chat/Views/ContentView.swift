@@ -5,6 +5,7 @@ struct ContentView: View {
     @EnvironmentObject private var modelManager: ModelManager
     @State private var showingSettings = false
     @State private var showingModels = false
+    @State private var showingInfo = false
     @State private var showingModelSelection = false
     @State private var selectedConversationId: UUID?
 
@@ -26,6 +27,12 @@ struct ContentView: View {
                         }) {
                             Image(systemName: "cpu")
                         }
+
+                        Button(action: {
+                            showingInfo = true
+                        }) {
+                            Image(systemName: "questionmark.circle")
+                        }
                     },
                     trailing: Button(action: {
                         showingSettings = true
@@ -41,6 +48,9 @@ struct ContentView: View {
                         ModelsView(selectedModel: .constant(nil))
                             .environmentObject(modelManager)
                     }
+                }
+                .sheet(isPresented: $showingInfo) {
+                    InfoView()
                 }
                 .sheet(isPresented: $showingModelSelection) {
                     ModelSelectionView() { selectedModel in

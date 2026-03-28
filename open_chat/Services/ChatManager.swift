@@ -1,6 +1,6 @@
 import Foundation
 import Combine
-@testable import open_chat
+import open_chat
 
 class ChatManager: ObservableObject {
     @Published var conversations: [Conversation] = []
@@ -51,12 +51,13 @@ class ChatManager: ObservableObject {
 
         // Add user message to conversation
         var updatedConversation = conversations[index]
-        updatedConversation.messages.append(Message(
+        let userMessage = Message(
             id: UUID(),
             role: .user,
             content: message,
             timestamp: Date()
-        ))
+        )
+        updatedConversation.messages.append(userMessage)
 
         // Update timestamp
         updatedConversation.updatedAt = Date()
@@ -67,56 +68,53 @@ class ChatManager: ObservableObject {
         // Save to local storage
         storageService.saveConversations(conversations)
 
-        // Send to Ollama API with full conversation history
+        // Use regular flow
+        return try await sendRegularMessage(conversation: updatedConversation, atIndex: index)
+    }
+
+    private func sendRegularMessage(conversation: Conversation, atIndex index: Int) async throws -> String {
         do {
             let response = try await OllamaService.shared.generateChatResponse(
-                messages: updatedConversation.messages,
+                messages: conversation.messages,
                 model: conversation.model.name
             )
 
             // Add assistant response to conversation
-            updatedConversation.messages.append(Message(
+            let assistantMessage = Message(
                 id: UUID(),
                 role: .assistant,
                 content: response,
                 timestamp: Date()
-            ))
-
-            // Update timestamp
+            )
+            var updatedConversation = conversation
+            updatedConversation.messages.append(assistantMessage)
             updatedConversation.updatedAt = Date()
-
-            // Update conversation in the list
             conversations[index] = updatedConversation
-
-            // Save to local storage
             storageService.saveConversations(conversations)
 
             return response
         } catch {
             // Add error message to conversation
             let errorContent = "Error: \(error.localizedDescription)"
-            updatedConversation.messages.append(Message(
+            let errorMessage = Message(
                 id: UUID(),
                 role: .assistant,
                 content: errorContent,
                 timestamp: Date()
-            ))
-
-            // Update timestamp
+            )
+            var updatedConversation = conversation
+            updatedConversation.messages.append(errorMessage)
             updatedConversation.updatedAt = Date()
-
-            // Update conversation in the list
             conversations[index] = updatedConversation
-
-            // Save to local storage
             storageService.saveConversations(conversations)
 
             // Set error message for UI
-            errorMessage = error.localizedDescription
+            self.errorMessage = error.localizedDescription
 
             throw error
         }
     }
+
 }
 
 enum ChatError: Error {

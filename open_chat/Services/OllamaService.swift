@@ -32,6 +32,7 @@ class OllamaService {
     func generateChatResponse(messages: [Message], model: String) async throws -> String {
         let urlString = "\(baseURL)/chat"
         print("Attempting to connect to: \(urlString)")
+        print("BaseURL: \(baseURL)")
 
         guard let url = URL(string: urlString) else {
             print("Invalid URL: \(urlString)")
@@ -78,6 +79,15 @@ class OllamaService {
             if let httpResponse = response as? HTTPURLResponse {
                 print("HTTP Status: \(httpResponse.statusCode)")
                 print("Headers: \(httpResponse.allHeaderFields)")
+
+                // Check for HTTP errors
+                if httpResponse.statusCode >= 400 {
+                    print("HTTP Error \(httpResponse.statusCode): \(HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode))")
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("Error response body: \(responseString)")
+                    }
+                    throw URLError(.badServerResponse)
+                }
             }
 
             // Print response data for debugging
@@ -85,14 +95,68 @@ class OllamaService {
                 print("Response data: \(responseString)")
             }
 
-            let ollamaResponse = try JSONDecoder().decode(OllamaChatResponse.self, from: data)
-            print("Successfully received response: \(ollamaResponse.message.content)")
-            return ollamaResponse.message.content
+            // Try to parse as JSON to see what we're actually getting
+            do {
+                let jsonResponse = try JSONSerialization.jsonObject(with: data, options: [])
+                print("Parsed JSON response: \(jsonResponse)")
+            } catch {
+                print("Failed to parse response as JSON: \(error)")
+            }
+
+            // Try to decode as our expected format first
+            do {
+                let ollamaResponse = try JSONDecoder().decode(OllamaChatResponse.self, from: data)
+                print("Successfully received response: \(ollamaResponse.message.content)")
+                return ollamaResponse.message.content
+            } catch {
+                print("Failed to decode as OllamaChatResponse: \(error)")
+                // Try to decode as a generic JSON to see what we're getting
+                do {
+                    if let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        print("Raw response object: \(jsonObject)")
+
+                        // Try to extract content even if model field is missing
+                        if let message = jsonObject["message"] as? [String: Any],
+                           let content = message["content"] as? String {
+                            print("Extracted content directly: \(content)")
+                            return content
+                        }
+
+                        // If we can't get content, throw the original error
+                        throw error
+                    }
+                } catch {
+                    print("Failed to parse response as generic JSON: \(error)")
+                }
+
+                // Re-throw the original decoding error
+                throw error
+            }
+        } catch let decodingError as DecodingError {
+            print("Decoding error in generateChatResponse: \(decodingError)")
+            // Print more details about the decoding error
+            switch decodingError {
+            case .keyNotFound(let key, let context):
+                print("Key '\(key)' not found. Coding path: \(context.codingPath)")
+            case .typeMismatch(let type, let context):
+                print("Type mismatch. Expected \(type). Coding path: \(context.codingPath)")
+            case .valueNotFound(let type, let context):
+                print("Value not found. Expected \(type). Coding path: \(context.codingPath)")
+            case .dataCorrupted(let context):
+                print("Data corrupted. Coding path: \(context.codingPath)")
+            @unknown default:
+                print("Unknown decoding error: \(decodingError)")
+            }
+            throw decodingError
+        } catch let urlError as URLError where urlError.code == .timedOut {
+            print("Request to Ollama timed out: \(urlError)")
+            throw URLError(.timedOut)
         } catch {
             print("Error in generateChatResponse: \(error)")
             throw error
         }
     }
+
 
     func listModels() async throws -> [OllamaModel] {
         let urlString = "\(baseURL)/tags"
@@ -132,7 +196,7 @@ class OllamaService {
 
     func getModelDetails(name: String) async throws -> OllamaModelDetails {
         let urlString = "\(baseURL)/show"
-        print("Attempting to fetch model details for: \(name)")
+        print("Attempting to fetch model details for: \(name) from URL: \(urlString)")
 
         guard let url = URL(string: urlString) else {
             print("Invalid URL for model details: \(urlString)")
@@ -167,6 +231,7 @@ class OllamaService {
             // Print response info for debugging
             if let httpResponse = response as? HTTPURLResponse {
                 print("Model details HTTP Status: \(httpResponse.statusCode)")
+                print("Response headers: \(httpResponse.allHeaderFields)")
             }
 
             // Print raw response data for debugging
@@ -181,20 +246,29 @@ class OllamaService {
             print("Decoded model details - License: \(String(describing: modelDetails.license?.prefix(100)))")
             print("Decoded model details - Parameters: \(String(describing: modelDetails.parameters?.prefix(100)))")
             print("Decoded model details - Modelfile: \(String(describing: modelDetails.modelfile?.prefix(100)))")
+            print("Decoded model details - Capabilities: \(String(describing: modelDetails.capabilities))")
 
             return modelDetails
+        } catch let decodingError as DecodingError {
+            print("Decoding error fetching model details: \(decodingError)")
+            // Print the raw data for debugging if we have it
+            throw decodingError
+        } catch let urlError as URLError {
+            print("URL error fetching model details: \(urlError)")
+            throw urlError
         } catch {
-            print("Error fetching model details: \(error)")
+            print("Generic error fetching model details: \(error)")
             throw error
         }
     }
 }
 
 struct OllamaChatResponse: Codable {
-    let model: String
+    let model: String?
     let message: OllamaMessage
     let done: Bool
 }
+
 
 struct OllamaMessage: Codable {
     let role: String
@@ -241,7 +315,6 @@ struct ModelDetails: Codable {
 struct Capabilities: Codable {
     let completion: Bool?
     let vision: Bool?
-    let tools: Bool?
 }
 
 // Generic JSON value type for handling dynamic model_info content

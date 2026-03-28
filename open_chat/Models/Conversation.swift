@@ -34,7 +34,16 @@ struct Message: Identifiable, Codable {
         case user
         case assistant
     }
+
+    init(id: UUID = UUID(), role: Role, content: String, timestamp: Date = Date()) {
+        self.id = id
+        self.role = role
+        self.content = content
+        self.timestamp = timestamp
+    }
 }
+
+
 
 struct ModelInfo: Codable, Hashable {
     let name: String
@@ -49,7 +58,6 @@ struct ModelInfo: Codable, Hashable {
     let family: String?
     let contextLength: Int?
     let hasVision: Bool?
-    let hasTools: Bool?
 
     init(
         name: String,
@@ -61,8 +69,7 @@ struct ModelInfo: Codable, Hashable {
         quantizationLevel: String? = nil,
         family: String? = nil,
         contextLength: Int? = nil,
-        hasVision: Bool? = nil,
-        hasTools: Bool? = nil
+        hasVision: Bool? = nil
     ) {
         self.name = name
         self.displayName = displayName
@@ -74,6 +81,5 @@ struct ModelInfo: Codable, Hashable {
         self.family = family
         self.contextLength = contextLength
         self.hasVision = hasVision
-        self.hasTools = hasTools
     }
 }
