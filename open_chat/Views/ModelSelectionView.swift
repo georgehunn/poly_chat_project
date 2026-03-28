@@ -31,7 +31,7 @@ struct ModelSelectionView: View {
                         Text("No models available")
                             .foregroundColor(.secondary)
                     } else {
-                        ForEach(modelManager.models, id: \.name) { model in
+                        ForEach(sortedModels, id: \.name) { model in
                             Button(action: {
                                 selectModel(model)
                             }) {
@@ -75,5 +75,9 @@ struct ModelSelectionView: View {
             let newConversation = chatManager.createNewConversation(model: model)
         }
         presentationMode.wrappedValue.dismiss()
+    }
+
+    private var sortedModels: [ModelInfo] {
+        modelManager.models.sorted { $0.name < $1.name }
     }
 }

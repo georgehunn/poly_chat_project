@@ -82,11 +82,17 @@ class OllamaService {
 
                 // Check for HTTP errors
                 if httpResponse.statusCode >= 400 {
-                    print("HTTP Error \(httpResponse.statusCode): \(HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode))")
+                    let statusString = HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)
+                    var errorBody = ""
                     if let responseString = String(data: data, encoding: .utf8) {
-                        print("Error response body: \(responseString)")
+                        errorBody = ": \(responseString)"
                     }
-                    throw URLError(.badServerResponse)
+                    print("HTTP Error \(httpResponse.statusCode) \(statusString)\(errorBody)")
+
+                    // Create a more descriptive error with the status code and response
+                    let errorMessage = "Server error \(httpResponse.statusCode) \(statusString)\(errorBody)"
+                    let nsError = NSError(domain: "OllamaError", code: Int(httpResponse.statusCode), userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                    throw nsError
                 }
             }
 

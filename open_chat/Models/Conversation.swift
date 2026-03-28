@@ -31,6 +31,7 @@ struct Message: Identifiable, Codable {
     let timestamp: Date
 
     enum Role: String, Codable {
+        case system
         case user
         case assistant
     }
@@ -58,6 +59,7 @@ struct ModelInfo: Codable, Hashable {
     let family: String?
     let contextLength: Int?
     let hasVision: Bool?
+    let hasTools: Bool?
 
     init(
         name: String,
@@ -69,7 +71,8 @@ struct ModelInfo: Codable, Hashable {
         quantizationLevel: String? = nil,
         family: String? = nil,
         contextLength: Int? = nil,
-        hasVision: Bool? = nil
+        hasVision: Bool? = nil,
+        hasTools: Bool? = nil
     ) {
         self.name = name
         self.displayName = displayName
@@ -81,5 +84,6 @@ struct ModelInfo: Codable, Hashable {
         self.family = family
         self.contextLength = contextLength
         self.hasVision = hasVision
+        self.hasTools = hasTools
     }
 }

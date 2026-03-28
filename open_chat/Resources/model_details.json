@@ -1,7 +1,7 @@
 {
   "models": [
     {
-      "name": "ministral-3",
+      "name": "ministral:latest",
       "displayName": "Ministral 3",
       "provider": "Mistral",
       "capabilities": ["text-generation", "vision", "tool-use"],

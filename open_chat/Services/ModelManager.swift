@@ -81,6 +81,7 @@ class ModelManager: ObservableObject {
                 let family = modelData["family"] as? String
                 let contextLength = modelData["contextLength"] as? Int
                 let hasVision = modelData["hasVision"] as? Bool
+                let hasTools = modelData["hasTools"] as? Bool
 
                 let modelInfo = ModelInfo(
                     name: name,
@@ -92,7 +93,8 @@ class ModelManager: ObservableObject {
                     quantizationLevel: quantizationLevel,
                     family: family,
                     contextLength: contextLength,
-                    hasVision: hasVision
+                    hasVision: hasVision,
+                    hasTools: hasTools
                 )
 
                 localModels.append(modelInfo)
@@ -143,6 +145,7 @@ class ModelManager: ObservableObject {
 
             // Extract capabilities
             let hasVision = details.capabilities?.vision
+            let hasTools = (model.capabilities.contains("tool-use") || model.capabilities.contains("function-calling")) ?? false
 
             // Extract description/license - prioritize license, then parameters, then modelfile
             let description = details.license ?? details.parameters ?? details.modelfile ?? "No description available"
@@ -157,7 +160,8 @@ class ModelManager: ObservableObject {
                 quantizationLevel: quantizationLevel,
                 family: family,
                 contextLength: contextLength,
-                hasVision: hasVision
+                hasVision: hasVision,
+                hasTools: hasTools
             )
         } catch {
             print("API call failed for model \(model.name): \(error)")
@@ -198,6 +202,7 @@ class ModelManager: ObservableObject {
                 let family = modelData["family"] as? String
                 let contextLength = modelData["contextLength"] as? Int
                 let hasVision = modelData["hasVision"] as? Bool
+                let hasTools = modelData["hasTools"] as? Bool
 
                 return ModelInfo(
                     name: name,
@@ -209,7 +214,8 @@ class ModelManager: ObservableObject {
                     quantizationLevel: quantizationLevel,
                     family: family,
                     contextLength: contextLength,
-                    hasVision: hasVision
+                    hasVision: hasVision,
+                    hasTools: hasTools
                 )
             } catch {
                 print("Error reading or parsing local model details JSON: \(error)")

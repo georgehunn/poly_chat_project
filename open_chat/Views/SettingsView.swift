@@ -4,6 +4,7 @@ struct SettingsView: View {
     @State private var ollamaEndpoint = "http://localhost:11434"
     @State private var apiKey = ""
     @State private var darkMode = false
+    @State private var systemPrompt = ""
     @State private var showingDeleteAlert = false
     @State private var showingExportView = false
     @State private var exportedData: Data?
@@ -45,6 +46,18 @@ struct SettingsView: View {
                         .onChange(of: darkMode) { _ in
                             saveSettings()
                         }
+                }
+
+                Section(header: Text("Default System Prompt")) {
+                    TextEditor(text: $systemPrompt)
+                        .frame(height: 100)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .onChange(of: systemPrompt) { _ in
+                            saveSettings()
+                        }
+                    Text("This prompt will be added to the beginning of each new conversation to help the model understand your preferences.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
 
                 Section(header: Text("Data Management")) {
@@ -104,6 +117,7 @@ struct SettingsView: View {
         }
 
         darkMode = UserDefaults.standard.bool(forKey: "darkMode")
+        systemPrompt = UserDefaults.standard.string(forKey: "systemPrompt") ?? ""
     }
 
     private func saveSettings() {
@@ -119,6 +133,7 @@ struct SettingsView: View {
         UserDefaults.standard.set(normalizedEndpoint, forKey: "ollamaEndpoint")
         UserDefaults.standard.set(apiKey, forKey: "apiKey")
         UserDefaults.standard.set(darkMode, forKey: "darkMode")
+        UserDefaults.standard.set(systemPrompt, forKey: "systemPrompt")
 
         print("Saved settings - Endpoint: \(normalizedEndpoint), API Key present: \(!apiKey.isEmpty)")
     }

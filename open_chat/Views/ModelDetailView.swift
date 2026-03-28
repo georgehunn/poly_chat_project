@@ -20,6 +20,9 @@ struct ModelDetailView: View {
                         if model.hasVision == true {
                             TagView(text: "Vision", color: .blue)
                         }
+                        if model.hasTools == true {
+                            TagView(text: "Tools", color: .green)
+                        }
                     }
 
                     Text(model.name)
@@ -81,6 +84,11 @@ struct ModelDetailView: View {
                         CapabilityRow(
                             label: "Vision/Multimodal",
                             isEnabled: detailedModel?.hasVision ?? model.hasVision ?? false
+                        )
+
+                        CapabilityRow(
+                            label: "Tool Use",
+                            isEnabled: detailedModel?.hasTools ?? model.hasTools ?? false
                         )
                     }
                 }
@@ -217,7 +225,8 @@ struct ModelDetailView_Previews: PreviewProvider {
                     quantizationLevel: "Q4_K_M",
                     family: "llama",
                     contextLength: 8192,
-                    hasVision: false
+                    hasVision: false,
+                    hasTools: false
                 )
             )
             .environmentObject(ModelManager())

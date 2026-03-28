@@ -25,7 +25,9 @@ struct ChatView: View {
                 ScrollView {
                     LazyVStack {
                         ForEach(conversation.messages) { message in
-                            MessageView(message: message)
+                            if message.role != .system {
+                                MessageView(message: message)
+                            }
                         }
 
                         if isLoading {

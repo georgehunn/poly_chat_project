@@ -32,7 +32,7 @@ struct ModelsView: View {
                     Text("No models available")
                         .foregroundColor(.secondary)
                 } else {
-                    ForEach(modelManager.models, id: \.name) { model in
+                    ForEach(sortedModels, id: \.name) { model in
                         NavigationLink(destination: ModelDetailView(model: model)) {
                             ModelRowView(model: model)
                         }
@@ -46,6 +46,10 @@ struct ModelsView: View {
                 modelManager.loadModels()
             }
         }
+    }
+
+    private var sortedModels: [ModelInfo] {
+        modelManager.models.sorted { $0.name < $1.name }
     }
 }
 
@@ -108,6 +112,10 @@ struct ModelRowView: View {
                 HStack(spacing: 4) {
                     if model.hasVision == true {
                         Text("👁️")
+                            .font(.caption)
+                    }
+                    if model.hasTools == true {
+                        Text("🛠️")
                             .font(.caption)
                     }
                 }

@@ -19,7 +19,20 @@ class ChatManager: ObservableObject {
 
     func createNewConversation(model: ModelInfo) -> Conversation {
         let randomName = NameGenerationService.shared.generateRandomName()
-        let newConversation = Conversation(title: randomName, model: model)
+        var newConversation = Conversation(title: randomName, model: model)
+
+        // Add system prompt to new conversation if configured
+        if let systemPrompt = UserDefaults.standard.string(forKey: "systemPrompt"),
+           !systemPrompt.isEmpty {
+            let systemMessage = Message(
+                id: UUID(),
+                role: .system,
+                content: systemPrompt,
+                timestamp: Date()
+            )
+            newConversation.messages.append(systemMessage)
+        }
+
         conversations.insert(newConversation, at: 0)
         storageService.saveConversations(conversations)
         return newConversation
