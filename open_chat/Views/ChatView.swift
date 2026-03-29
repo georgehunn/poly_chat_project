@@ -1,9 +1,15 @@
 import SwiftUI
+import Foundation
 
 struct ChatView: View {
     let conversationId: UUID
     @State private var messageText = ""
     @State private var isLoading = false
+    @State private var showingConfigAlert = false
+    @State private var showingUnauthorizedAlert = false
+    @State private var showingUnsupportedURLAlert = false
+    @State private var showingSettings = false
+    @State private var lastMessageToSend = ""
     @EnvironmentObject private var chatManager: ChatManager
 
     var conversation: Conversation? {
@@ -68,12 +74,76 @@ struct ChatView: View {
             }
         }
         .navigationTitle(conversation?.title ?? "Chat")
+        .alert("Configuration Required", isPresented: $showingConfigAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Open Settings") {
+                showingSettings = true
+            }
+        } message: {
+            Text(getConfigAlertMessage())
+        }
+        .alert("Unauthorized - 401", isPresented: $showingUnauthorizedAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Check Settings") {
+                showingSettings = true
+            }
+            Button("Retry") {
+                if let conversation = conversation {
+                    Task {
+                        isLoading = true
+                        defer { isLoading = false }
+                        do {
+                            _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
+                        } catch {
+                            print("Retry error: \(error)")
+                        }
+                    }
+                }
+            }
+        } message: {
+            Text("The server returned 401 Unauthorized. This usually means the API key is invalid or the endpoint URL is incorrect.")
+        }
+        .alert("Unsupported URL - 404", isPresented: $showingUnsupportedURLAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Check Settings") {
+                showingSettings = true
+            }
+            Button("Retry") {
+                if let conversation = conversation {
+                    Task {
+                        isLoading = true
+                        defer { isLoading = false }
+                        do {
+                            _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
+                        } catch {
+                            print("Retry error: \(error)")
+                        }
+                    }
+                }
+            }
+        } message: {
+            Text("The URL is not supported. Please check if the endpoint URL is correct and points to a valid Ollama server.")
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
+        }
+    }
+
+    private func getConfigAlertMessage() -> String {
+        return OllamaService.getConfigStatusMessage()
     }
 
     private func sendMessage() {
+        // Check if URL is configured before sending message
+        if !OllamaService.isConfigured() {
+            showingConfigAlert = true
+            return
+        }
+
         guard !messageText.isEmpty, let conversation = conversation else { return }
 
-        let messageToSend = messageText
+        // Save the message for potential retries
+        lastMessageToSend = messageText
         messageText = "" // Clear the text field immediately
 
         Task {
@@ -81,10 +151,24 @@ struct ChatView: View {
             defer { isLoading = false }
 
             do {
-                _ = try await chatManager.sendMessage(messageToSend, in: conversation)
+                _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
             } catch {
                 print("Error sending message: \(error)")
-                // Error message will be displayed in the chat
+
+                // Check for specific error types and show appropriate alerts
+                let nsError = error as NSError
+                let errorDomain = nsError.domain
+                let errorCode = nsError.code
+
+                print("Error domain: \(errorDomain), code: \(errorCode)")
+
+                if errorDomain == "OllamaUnauthorizedError" && errorCode == 401 {
+                    showingUnauthorizedAlert = true
+                } else if errorDomain == "OllamaUnsupportedURLError" && errorCode == 404 {
+                    showingUnsupportedURLAlert = true
+                } else {
+                    // Generic error - already handled by chatManager
+                }
             }
         }
     }

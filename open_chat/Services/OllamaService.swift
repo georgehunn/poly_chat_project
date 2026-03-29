@@ -6,9 +6,59 @@ class OllamaService {
 
     private init() {}
 
+    /// Checks if the Ollama URL is properly configured
+    /// - Returns: true if endpoint is set in Keychain
+    static func isConfigured() -> Bool {
+        let secureStorage = SecureStorageService()
+
+        // Check endpoint - read from Keychain
+        guard let endpoint = secureStorage.getEndpoint(), !endpoint.isEmpty else {
+            return false
+        }
+
+        // API key is optional - only check if present
+        // If API key is empty, we'll try without authentication
+
+        return true
+    }
+
+    /// Checks if both URL and API key are configured
+    /// - Returns: true if endpoint is set AND API key is not empty
+    static func isFullyConfigured() -> Bool {
+        let secureStorage = SecureStorageService()
+
+        // Check endpoint - read from Keychain
+        guard let endpoint = secureStorage.getEndpoint(), !endpoint.isEmpty else {
+            return false
+        }
+
+        // Check API key - read from Keychain
+        guard let apiKey = secureStorage.getAPIKey(), !apiKey.isEmpty else {
+            return false
+        }
+
+        return true
+    }
+
+    /// Gets the configuration status message
+    /// - Returns: A message describing the current configuration status
+    static func getConfigStatusMessage() -> String {
+        let secureStorage = SecureStorageService()
+        let endpoint = secureStorage.getEndpoint()
+        let apiKey = secureStorage.getAPIKey()
+
+        if endpoint == nil || endpoint?.isEmpty == true {
+            return "URL is not set up. Please configure the endpoint in Settings."
+        } else if apiKey == nil || apiKey?.isEmpty == true {
+            return "API key is not set up. Please configure your API key in Settings."
+        }
+        return "URL and API key not set up. Please configure them in Settings."
+    }
+
     private var baseURL: String {
-        // Get from UserDefaults or use default
-        if let savedEndpoint = UserDefaults.standard.string(forKey: "ollamaEndpoint"),
+        let secureStorage = SecureStorageService()
+        // Get from Keychain or use default
+        if let savedEndpoint = secureStorage.getEndpoint(),
            !savedEndpoint.isEmpty {
             // Normalize the endpoint
             var endpoint = savedEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -26,7 +76,7 @@ class OllamaService {
             print("Using Ollama endpoint: \(endpoint)")
             return endpoint
         }
-        return "http://localhost:11434/api"
+        return "https://ollama.com/api"
     }
 
     func generateChatResponse(messages: [Message], model: String) async throws -> String {
@@ -58,7 +108,8 @@ class OllamaService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // Add API key if available
-        if let apiKey = UserDefaults.standard.string(forKey: "apiKey"),
+        let secureStorage = SecureStorageService()
+        if let apiKey = secureStorage.getAPIKey(),
            !apiKey.isEmpty {
             request.setValue(apiKey, forHTTPHeaderField: "Authorization")
             print("Using API key for authentication")
@@ -91,7 +142,23 @@ class OllamaService {
 
                     // Create a more descriptive error with the status code and response
                     let errorMessage = "Server error \(httpResponse.statusCode) \(statusString)\(errorBody)"
-                    let nsError = NSError(domain: "OllamaError", code: Int(httpResponse.statusCode), userInfo: [NSLocalizedDescriptionKey: errorMessage])
+
+                    // Determine error domain and code based on status
+                    let errorDomain: String
+                    let errorCode: Int
+
+                    if httpResponse.statusCode == 401 {
+                        errorDomain = "OllamaUnauthorizedError"
+                        errorCode = 401
+                    } else if httpResponse.statusCode == 404 {
+                        errorDomain = "OllamaUnsupportedURLError"
+                        errorCode = 404
+                    } else {
+                        errorDomain = "OllamaError"
+                        errorCode = Int(httpResponse.statusCode)
+                    }
+
+                    let nsError = NSError(domain: errorDomain, code: errorCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])
                     throw nsError
                 }
             }
@@ -177,7 +244,8 @@ class OllamaService {
         request.httpMethod = "GET"
 
         // Add API key if available
-        if let apiKey = UserDefaults.standard.string(forKey: "apiKey"),
+        let secureStorage = SecureStorageService()
+        if let apiKey = secureStorage.getAPIKey(),
            !apiKey.isEmpty {
             request.setValue(apiKey, forHTTPHeaderField: "Authorization")
         }
@@ -218,7 +286,8 @@ class OllamaService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // Add API key if available
-        if let apiKey = UserDefaults.standard.string(forKey: "apiKey"),
+        let secureStorage = SecureStorageService()
+        if let apiKey = secureStorage.getAPIKey(),
            !apiKey.isEmpty {
             request.setValue(apiKey, forHTTPHeaderField: "Authorization")
         }

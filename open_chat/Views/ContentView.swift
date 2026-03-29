@@ -44,10 +44,8 @@ struct ContentView: View {
                     SettingsView()
                 }
                 .sheet(isPresented: $showingModels) {
-                    NavigationView {
-                        ModelsView(selectedModel: .constant(nil))
-                            .environmentObject(modelManager)
-                    }
+                    ModelsView(selectedModel: .constant(nil))
+                        .environmentObject(modelManager)
                 }
                 .sheet(isPresented: $showingInfo) {
                     InfoView()

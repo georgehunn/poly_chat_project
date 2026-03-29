@@ -4,6 +4,8 @@ struct ModelSelectionView: View {
     @EnvironmentObject private var modelManager: ModelManager
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject private var chatManager: ChatManager
+    @State private var showingConfigAlert = false
+    @State private var showingSettings = false
 
     var onModelSelected: ((ModelInfo) -> Void)?
 
@@ -65,9 +67,26 @@ struct ModelSelectionView: View {
                 modelManager.loadModels()
             }
         }
+        .alert("Configuration Required", isPresented: $showingConfigAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Open Settings") {
+                showingSettings = true
+            }
+        } message: {
+            Text("URL and API key not set up. Please configure them in Settings.")
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
+        }
     }
 
     private func selectModel(_ model: ModelInfo) {
+        // Check if URL and API key are configured before allowing model selection
+        if !OllamaService.isConfigured() {
+            showingConfigAlert = true
+            return
+        }
+
         if let onModelSelected = onModelSelected {
             onModelSelected(model)
         } else {

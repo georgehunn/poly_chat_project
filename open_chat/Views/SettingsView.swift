@@ -106,23 +106,13 @@ struct SettingsView: View {
     }
 
     private func loadSettings() {
-        // Load settings from secure storage and UserDefaults
+        // Load settings from secure storage
         if let savedEndpoint = secureStorageService.getEndpoint() {
             ollamaEndpoint = savedEndpoint
-        } else if let savedEndpoint = UserDefaults.standard.string(forKey: "ollamaEndpoint") {
-            ollamaEndpoint = savedEndpoint
-            // Migrate to secure storage
-            secureStorageService.saveEndpoint(savedEndpoint)
-            UserDefaults.standard.removeObject(forKey: "ollamaEndpoint")
         }
 
         if let savedApiKey = secureStorageService.getAPIKey() {
             apiKey = savedApiKey
-        } else if let savedApiKey = UserDefaults.standard.string(forKey: "apiKey") {
-            apiKey = savedApiKey
-            // Migrate to secure storage
-            secureStorageService.saveAPIKey(savedApiKey)
-            UserDefaults.standard.removeObject(forKey: "apiKey")
         }
 
         darkMode = UserDefaults.standard.bool(forKey: "darkMode")
@@ -138,9 +128,11 @@ struct SettingsView: View {
             normalizedEndpoint.removeLast()
         }
 
-        // Save validated endpoint
-        UserDefaults.standard.set(normalizedEndpoint, forKey: "ollamaEndpoint")
-        UserDefaults.standard.set(apiKey, forKey: "apiKey")
+        // Save to secure storage (Keychain)
+        secureStorageService.saveEndpoint(normalizedEndpoint)
+        secureStorageService.saveAPIKey(apiKey)
+
+        // Save non-sensitive settings to UserDefaults
         UserDefaults.standard.set(darkMode, forKey: "darkMode")
         UserDefaults.standard.set(systemPrompt, forKey: "systemPrompt")
 

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ModelDetailView: View {
     let model: ModelInfo
+    let onDismiss: () -> Void
     @EnvironmentObject private var modelManager: ModelManager
     @State private var detailedModel: ModelInfo?
     @State private var isLoading = false
@@ -101,6 +102,13 @@ struct ModelDetailView: View {
             .padding()
         }
         .navigationTitle("Model Details")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") {
+                    onDismiss()
+                }
+            }
+        }
         .onAppear {
             loadModelDetails()
         }
@@ -213,7 +221,7 @@ struct TagView: View {
 
 struct ModelDetailView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView {
+        NavigationStack {
             ModelDetailView(
                 model: ModelInfo(
                     name: "llama3:latest",
@@ -227,7 +235,8 @@ struct ModelDetailView_Previews: PreviewProvider {
                     contextLength: 8192,
                     hasVision: false,
                     hasTools: false
-                )
+                ),
+                onDismiss: {}
             )
             .environmentObject(ModelManager())
         }

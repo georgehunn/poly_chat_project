@@ -2,48 +2,63 @@ import SwiftUI
 
 struct ModelsView: View {
     @EnvironmentObject private var modelManager: ModelManager
+    @Environment(\.presentationMode) var presentationMode
+    @State private var navigationPath = NavigationPath()
     @Binding var selectedModel: ModelInfo?
 
     var body: some View {
-        List {
-            if !modelManager.models.isEmpty {
-                Section(header: Text("Information")) {
-                    Text("Tap on any model below to view detailed information including technical specifications, capabilities, and descriptions.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+        NavigationStack(path: $navigationPath) {
+            List {
+                if !modelManager.models.isEmpty {
+                    Section(header: Text("Information")) {
+                        Text("Tap on any model below to view detailed information including technical specifications, capabilities, and descriptions.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-            }
 
-            Section(header: Text("Available Models")) {
-                if modelManager.isLoading {
-                    HStack {
-                        Spacer()
-                        VStack {
-                            ProgressView()
-                            Text("Loading models...")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                Section(header: Text("Available Models")) {
+                    if modelManager.isLoading {
+                        HStack {
+                            Spacer()
+                            VStack {
+                                ProgressView()
+                                Text("Loading models...")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
                         }
-                        Spacer()
-                    }
-                    .padding()
-                } else if modelManager.models.isEmpty {
-                    Text("No models available")
-                        .foregroundColor(.secondary)
-                } else {
-                    ForEach(sortedModels, id: \.name) { model in
-                        NavigationLink(destination: ModelDetailView(model: model)) {
-                            ModelRowView(model: model)
+                        .padding()
+                    } else if modelManager.models.isEmpty {
+                        Text("No models available")
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(sortedModels, id: \.name) { model in
+                            NavigationLink(value: model) {
+                                ModelRowView(model: model)
+                            }
                         }
                     }
                 }
             }
-        }
-        .navigationTitle("Models")
-        .onAppear {
-            if modelManager.models.isEmpty && !modelManager.isLoading {
-                modelManager.loadModels()
+            .navigationTitle("Models")
+            .navigationDestination(for: ModelInfo.self) { model in
+                ModelDetailView(model: model, onDismiss: { presentationMode.wrappedValue.dismiss() })
+                    .environmentObject(modelManager)
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                if modelManager.models.isEmpty && !modelManager.isLoading {
+                    modelManager.loadModels()
+                }
             }
         }
     }
