@@ -47,19 +47,19 @@ struct Message: Identifiable, Codable {
 
 
 struct ModelInfo: Codable, Hashable {
-    let name: String
-    let displayName: String
-    let provider: String
-    let capabilities: [String]
+    var name: String
+    var displayName: String
+    var provider: String
+    var capabilities: [String]
 
     // Detailed model information
-    let description: String?
-    let parameterSize: String?
-    let quantizationLevel: String?
-    let family: String?
-    let contextLength: Int?
-    let hasVision: Bool?
-    let hasTools: Bool?
+    var description: String?
+    var parameterSize: String?
+    var quantizationLevel: String?
+    var family: String?
+    var contextLength: Int?
+    var hasVision: Bool?
+    var hasTools: Bool?
 
     init(
         name: String,

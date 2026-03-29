@@ -6,8 +6,8 @@ class ModelManager: ObservableObject {
     @Published var isLoading = false
 
     init() {
-        // Load models from local JSON as the source of truth
-        loadModelsFromLocalJSON()
+        // Initialize with empty array - models will be loaded from API on demand
+        // JSON file is used only for enriching model details, not as a model source
     }
 
     func loadModels() {
@@ -15,14 +15,14 @@ class ModelManager: ObservableObject {
         isLoading = true
 
         // Load models from Ollama API
+        // JSON file is used only to enrich model details
         Task {
             do {
                 let ollamaModels = try await OllamaService.shared.listModels()
-                var detailedModels: [ModelInfo] = []
+                var enrichedModels: [ModelInfo] = []
 
-                // Load detailed information for each model from local JSON first
+                // For each API model, enrich with JSON details if available
                 for ollamaModel in ollamaModels {
-                    // Start with basic model info from API
                     var modelInfo = ModelInfo(
                         name: ollamaModel.name,
                         displayName: ollamaModel.name.replacingOccurrences(of: ":", with: " "),
@@ -30,83 +30,38 @@ class ModelManager: ObservableObject {
                         capabilities: ["text-generation"]
                     )
 
-                    // Try to load detailed information from local JSON
-                    if let detailedModel = loadModelDetailsFromLocalJSON(for: ollamaModel.name) {
-                        modelInfo = detailedModel
+                    // Try to enrich with detailed information from local JSON
+                    if let jsonDetails = loadModelDetailsFromLocalJSON(for: ollamaModel.name) {
+                        // Use JSON details for displayName, provider, description, capabilities
+                        modelInfo.displayName = jsonDetails.displayName
+                        modelInfo.provider = jsonDetails.provider
+                        modelInfo.description = jsonDetails.description
+                        modelInfo.capabilities = jsonDetails.capabilities
+                        modelInfo.parameterSize = jsonDetails.parameterSize
+                        modelInfo.quantizationLevel = jsonDetails.quantizationLevel
+                        modelInfo.family = jsonDetails.family
+                        modelInfo.contextLength = jsonDetails.contextLength
+                        modelInfo.hasVision = jsonDetails.hasVision
+                        modelInfo.hasTools = jsonDetails.hasTools
                     }
 
-
-                    detailedModels.append(modelInfo)
+                    enrichedModels.append(modelInfo)
                 }
 
                 DispatchQueue.main.async {
-                    self.models = detailedModels
+                    self.models = enrichedModels
                     self.isLoading = false
                 }
             } catch {
                 print("Error loading models from API: \(error)")
-                // Keep using local JSON models if API fails
+                // Clear models on error so user knows to check connection
                 DispatchQueue.main.async {
+                    self.models = []
                     self.isLoading = false
                 }
             }
         }
     }
-
-    private func loadModelsFromLocalJSON() {
-        guard let path = Bundle.main.path(forResource: "model_details", ofType: "json") else {
-            print("Local model details JSON file not found")
-            return
-        }
-
-        do {
-            let data = try Data(contentsOf: URL(fileURLWithPath: path))
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-
-            guard let modelsArray = json?["models"] as? [[String: Any]] else {
-                print("Invalid format in model details JSON")
-                return
-            }
-
-            var localModels: [ModelInfo] = []
-            for modelData in modelsArray {
-                // Extract values with proper type checking
-                let name = modelData["name"] as? String ?? "unknown"
-                let displayName = modelData["displayName"] as? String ?? name.replacingOccurrences(of: ":", with: " ")
-                let provider = modelData["provider"] as? String ?? "Unknown"
-                let capabilities = modelData["capabilities"] as? [String] ?? ["text-generation"]
-                let description = modelData["description"] as? String
-                let parameterSize = modelData["parameterSize"] as? String
-                let quantizationLevel = modelData["quantizationLevel"] as? String
-                let family = modelData["family"] as? String
-                let contextLength = modelData["contextLength"] as? Int
-                let hasVision = modelData["hasVision"] as? Bool
-                let hasTools = modelData["hasTools"] as? Bool
-
-                let modelInfo = ModelInfo(
-                    name: name,
-                    displayName: displayName,
-                    provider: provider,
-                    capabilities: capabilities,
-                    description: description,
-                    parameterSize: parameterSize,
-                    quantizationLevel: quantizationLevel,
-                    family: family,
-                    contextLength: contextLength,
-                    hasVision: hasVision,
-                    hasTools: hasTools
-                )
-
-                localModels.append(modelInfo)
-            }
-
-            print("Loaded \(localModels.count) models from local JSON")
-            self.models = localModels
-        } catch {
-            print("Error reading or parsing local model details JSON: \(error)")
-        }
-    }
-
 
     func loadModelDetails(for model: ModelInfo) async throws -> ModelInfo {
         // Use local JSON as the source of truth first

@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var showingDeleteAlert = false
     @State private var showingExportView = false
     @State private var exportedData: Data?
+    @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject private var chatManager: ChatManager
 
     let localStorageService = LocalStorageService()
@@ -77,6 +78,14 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        saveSettings()
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
             .alert("Confirm Deletion", isPresented: $showingDeleteAlert) {
                 Button("Delete", role: .destructive) {
                     deleteAllConversations()

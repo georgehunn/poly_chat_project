@@ -99,8 +99,8 @@ struct MessageView: View {
                 Spacer()
             }
 
-            VStack(alignment: message.role == .user ? .trailing : .leading) {
-                Text(message.content)
+            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 0) {
+                MarkdownText(markdown: message.content)
                     .padding()
                     .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
                     .cornerRadius(10)
@@ -133,6 +133,31 @@ struct ChatView_Previews: PreviewProvider {
         NavigationView {
             ChatView(conversationId: UUID())
                 .environmentObject(ChatManager())
+        }
+    }
+}
+
+struct MarkdownText: View {
+    let markdown: String
+
+    var body: some View {
+        let lines = markdown.components(separatedBy: "\n")
+
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(lines, id: \.self) { line in
+                if !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    if let attributed = try? AttributedString(markdown: line) {
+                        Text(attributed)
+                            .font(.body)
+                    } else {
+                        Text(line)
+                            .font(.body)
+                    }
+                } else {
+                    // Empty line - create spacing
+                    Spacer(minLength: 4)
+                }
+            }
         }
     }
 }
