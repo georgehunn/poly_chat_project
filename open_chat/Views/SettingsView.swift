@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @State private var ollamaEndpoint = "http://localhost:11434"
     @State private var apiKey = ""
-    @State private var darkMode = false
+    @AppStorage("darkMode") private var darkMode = false
     @State private var systemPrompt = ""
     @State private var showingDeleteAlert = false
     @State private var showingExportView = false
@@ -115,7 +115,6 @@ struct SettingsView: View {
             apiKey = savedApiKey
         }
 
-        darkMode = UserDefaults.standard.bool(forKey: "darkMode")
         systemPrompt = UserDefaults.standard.string(forKey: "systemPrompt") ?? ""
     }
 
@@ -133,7 +132,6 @@ struct SettingsView: View {
         secureStorageService.saveAPIKey(apiKey)
 
         // Save non-sensitive settings to UserDefaults
-        UserDefaults.standard.set(darkMode, forKey: "darkMode")
         UserDefaults.standard.set(systemPrompt, forKey: "systemPrompt")
 
         print("Saved settings - Endpoint: \(normalizedEndpoint), API Key present: \(!apiKey.isEmpty)")

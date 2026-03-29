@@ -189,6 +189,11 @@ struct MessageView: View {
                     .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
                     .cornerRadius(10)
                     .foregroundColor(message.role == .user ? .primary : .primary)
+                    .contextMenu {
+                        Button(action: copyMessage) {
+                            Label("Copy", systemImage: "doc.on.doc")
+                        }
+                    }
 
                 Text(formatDate(message.timestamp))
                     .font(.caption)
@@ -202,6 +207,10 @@ struct MessageView: View {
             }
         }
         .padding(.horizontal)
+    }
+
+    private func copyMessage() {
+        UIPasteboard.general.string = message.content
     }
 
     private func formatDate(_ date: Date) -> String {
