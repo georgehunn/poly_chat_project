@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var showingModels = false
     @State private var showingInfo = false
     @State private var showingModelSelection = false
+    @State private var showingAPIConfig = true
     @State private var selectedConversationId: UUID?
 
     var body: some View {
@@ -58,6 +59,9 @@ struct ContentView: View {
                     .environmentObject(modelManager)
                     .environmentObject(chatManager)
                 }
+                .sheet(isPresented: $showingAPIConfig) {
+                    APIConfigPopup()
+                }
 
             // Empty state when no conversation is selected (this will be hidden when using NavigationLink)
             VStack {
@@ -69,6 +73,13 @@ struct ContentView: View {
                     .foregroundColor(.gray)
             }
             .navigationBarTitle("Chats")
+        }
+        .onAppear {
+            // Check if API is configured - if API key is empty, show popup
+            let secureStorage = SecureStorageService()
+            if let apiKey = secureStorage.getAPIKey(), !apiKey.isEmpty {
+                showingAPIConfig = false
+            }
         }
     }
 }

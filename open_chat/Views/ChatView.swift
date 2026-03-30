@@ -198,6 +198,19 @@ struct ChatView: View {
         OllamaService.getConfigStatusMessage()
     }
 
+    private func checkAndShowConfigPopup() {
+        // Only show popup if endpoint is not configured at all
+        let secureStorage = SecureStorageService()
+        if let endpoint = secureStorage.getEndpoint(), !endpoint.isEmpty {
+            // Endpoint exists, don't show popup
+            showingConfigAlert = false
+        } else {
+            // No endpoint configured, show popup instead of alert
+            showingConfigAlert = false
+            // Popup will be shown via ContentView
+        }
+    }
+
     private func sendMessage() {
         if !OllamaService.isConfigured() {
             showingConfigAlert = true

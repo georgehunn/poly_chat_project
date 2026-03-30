@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		E01D2D112F79C0C80099482A /* MarkdownExtendedView in Frameworks */ = {isa = PBXBuildFile; productRef = E01D2D102F79C0C80099482A /* MarkdownExtendedView */; };
-		E01D2D122F79C8D90099482A /* PDFKit */ = {isa = PBXBuildFile; framework = PDFKit; settings = {ATTRIBUTES = (Weak, ); }; };
+		E01D2D122F79C8D90099482A /* (null) in Frameworks */ = {isa = PBXBuildFile; settings = {ATTRIBUTES = (Weak, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,7 +58,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E01D2D112F79C0C80099482A /* MarkdownExtendedView in Frameworks */,
-				E01D2D122F79C8D90099482A /* PDFKit */,
+				E01D2D122F79C8D90099482A /* (null) in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

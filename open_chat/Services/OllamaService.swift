@@ -5,6 +5,15 @@ class OllamaService {
 
     private init() {}
 
+    /// Validation result for connection testing
+    enum ValidationError: Error {
+        case noEndpoint
+        case invalidEndpoint
+        case connectionFailed(Error)
+        case unauthorized
+        case unknown
+    }
+
     /// Checks if the Ollama URL is properly configured
     /// - Returns: true if endpoint is set in Keychain
     static func isConfigured() -> Bool {
@@ -37,6 +46,63 @@ class OllamaService {
         }
 
         return true
+    }
+
+    /// Validates the connection to the Ollama endpoint
+    /// - Parameters:
+    ///   - endpoint: The endpoint URL to test
+    ///   - apiKey: Optional API key for authentication
+    /// - Returns: Void but throws error if validation fails
+    static func validateConnection(endpoint: String, apiKey: String? = nil) async throws {
+        var normalizedEndpoint = endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Remove trailing slashes
+        while normalizedEndpoint.hasSuffix("/") {
+            normalizedEndpoint.removeLast()
+        }
+
+        // Add /api if it's not already there
+        if !normalizedEndpoint.hasSuffix("/api") && !normalizedEndpoint.contains("/api/") {
+            normalizedEndpoint += "/api"
+        }
+
+        let urlString = "\(normalizedEndpoint)/tags"
+
+        guard let url = URL(string: urlString) else {
+            throw ValidationError.invalidEndpoint
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        // Add API key if provided
+        if let apiKey = apiKey, !apiKey.isEmpty {
+            request.setValue(apiKey, forHTTPHeaderField: "Authorization")
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 401 {
+                    throw ValidationError.unauthorized
+                } else if httpResponse.statusCode >= 400 {
+                    throw ValidationError.connectionFailed(NSError(domain: "OllamaError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server returned \(httpResponse.statusCode)"]))
+                }
+            }
+
+            // If we get here, connection succeeded
+            // Response should be a JSON array of models (or empty array)
+            _ = try JSONSerialization.jsonObject(with: data, options: [])
+        } catch {
+            if let urlError = error as? URLError {
+                throw ValidationError.connectionFailed(urlError)
+            } else if let ollamaError = error as? ValidationError {
+                throw ollamaError
+            } else {
+                throw ValidationError.connectionFailed(error)
+            }
+        }
     }
 
     /// Gets the configuration status message
