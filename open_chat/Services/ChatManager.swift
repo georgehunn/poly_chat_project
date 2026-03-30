@@ -19,8 +19,7 @@ class ChatManager: ObservableObject {
     }
 
     func createNewConversation(model: ModelInfo) -> Conversation {
-        let randomName = NameGenerationService.shared.generateRandomName()
-        var newConversation = Conversation(title: randomName, model: model)
+        var newConversation = Conversation(title: "New Chat", model: model)
 
         // Add system prompt to new conversation if configured
         if let systemPrompt = UserDefaults.standard.string(forKey: "systemPrompt"),
@@ -166,6 +165,13 @@ class ChatManager: ObservableObject {
             conversations[index] = updatedConversation
             storageService.saveConversations(conversations)
 
+            // After first user + assistant exchange, generate a better title
+            if needsTitleUpdate(conversation: updatedConversation) {
+                Task { [weak self] in
+                    await self?.updateTitleForConversation(updatedConversation)
+                }
+            }
+
             return response
         } catch {
             // Add error message to conversation
@@ -189,6 +195,41 @@ class ChatManager: ObservableObject {
         }
     }
 
+    /// Checks if the conversation needs a title update (first user + assistant exchange completed)
+    private func needsTitleUpdate(conversation: Conversation) -> Bool {
+        // Filter out system messages
+        let nonSystemMessages = conversation.messages.filter { $0.role != .system }
+
+        // Need exactly 2 messages (user + assistant) to generate meaningful title on first exchange
+        guard nonSystemMessages.count == 2 else {
+            return false
+        }
+
+        // Check if title is still "New Chat" (meaning it hasn't been updated yet)
+        return conversation.title == "New Chat"
+    }
+
+    /// Update conversation title using LLM based on message content
+    private func updateTitleForConversation(_ conversation: Conversation) async {
+        // Filter out system messages for title generation
+        let nonSystemMessages = conversation.messages.filter { $0.role != .system }
+
+        guard nonSystemMessages.count >= 2 else {
+            return
+        }
+
+        let newTitle = await NameGenerationService.shared.generateTitleFromMessages(nonSystemMessages, model: conversation.model.name)
+
+        // Only update if we got a valid title and it's different from "New Chat"
+        if !newTitle.isEmpty && newTitle != "New Chat" {
+            if let index = conversations.firstIndex(where: { $0.id == conversation.id }) {
+                conversations[index].title = newTitle
+                conversations[index].updatedAt = Date()
+                storageService.saveConversations(conversations)
+                print("Updated title to: \(newTitle)")
+            }
+        }
+    }
 }
 
 enum ChatError: Error {

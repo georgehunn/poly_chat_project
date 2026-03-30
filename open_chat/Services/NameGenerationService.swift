@@ -2,45 +2,29 @@ import Foundation
 
 class NameGenerationService {
     static let shared = NameGenerationService()
+    private let ollamaService = OllamaService.shared
 
     private init() {}
 
-    // Popular boy names
-    private let boyNames = [
-        "Alexander", "Benjamin", "Christopher", "Daniel", "Ethan",
-        "Gabriel", "Henry", "Isaac", "Jacob", "Kevin",
-        "Liam", "Matthew", "Nathan", "Oliver", "Patrick",
-        "Quentin", "Ryan", "Samuel", "Thomas", "William",
-        "Adam", "Brian", "Charles", "David", "Edward",
-        "Frank", "George", "Harry", "Ian", "Jack",
-        "Kyle", "Lucas", "Michael", "Noah", "Oscar",
-        "Peter", "Quinn", "Robert", "Stephen", "Tyler",
-        "Uriah", "Victor", "Wyatt", "Xavier", "Yannick",
-        "Zachary", "Andrew", "Barry", "Carl", "Derek"
-    ]
+    /// Generates a contextual title based on conversation messages using LLM
+    /// - Parameters:
+    ///   - messages: The conversation messages (typically user + assistant exchange)
+    ///   - model: The model name to use for title generation
+    /// - Returns: A contextual title or "New Chat" if generation fails
+    func generateTitleFromMessages(_ messages: [Message], model: String) async -> String {
+        // Need at least user + assistant messages to generate a meaningful title
+        guard messages.count >= 2 else {
+            print("Not enough messages to generate title")
+            return "New Chat"
+        }
 
-    // Popular girl names
-    private let girlNames = [
-        "Abigail", "Charlotte", "Diana", "Elizabeth", "Fiona",
-        "Grace", "Hannah", "Isabella", "Julia", "Katherine",
-        "Lily", "Mia", "Nora", "Olivia", "Penelope",
-        "Quinn", "Rachel", "Sophia", "Taylor", "Victoria",
-        "Alice", "Bella", "Chloe", "Daisy", "Ella",
-        "Faith", "Gemma", "Hope", "Ivy", "Jasmine",
-        "Kayla", "Leah", "Maya", "Nina", "Opal",
-        "Piper", "Rose", "Sadie", "Tessa", "Una",
-        "Vera", "Willow", "Xena", "Yara", "Zoe",
-        "Amelia", "Brianna", "Clara", "Delilah", "Elena"
-    ]
-
-    /// Generates a random name from combined boy and girl names
-    /// - Returns: A randomly selected name from the combined lists
-    func generateRandomName() -> String {
-        // Combine both lists
-        let allNames = boyNames + girlNames
-
-        // Select a random name
-        let randomIndex = Int.random(in: 0..<allNames.count)
-        return allNames[randomIndex]
+        do {
+            let title = try await ollamaService.generateTitle(for: messages, model: model)
+            print("Generated title: \(title)")
+            return title
+        } catch {
+            print("Failed to generate title: \(error)")
+            return "New Chat"
+        }
     }
 }

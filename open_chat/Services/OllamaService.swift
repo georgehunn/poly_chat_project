@@ -78,6 +78,111 @@ class OllamaService {
         return "https://ollama.com/api"
     }
 
+    /// Generate a short title (3 words) for a conversation using the LLM
+    /// - Parameters:
+    ///   - messages: The conversation messages (typically user + assistant exchange)
+    ///   - model: The model name to use
+    /// - Returns: A short title summarizing the conversation
+    func generateTitle(for messages: [Message], model: String) async throws -> String {
+        // Create a summary request with the first few messages
+        let summaryPrompt = """
+        Provide a short title (2-4 words) that summarizes the main topic of this conversation.
+        Respond with ONLY the title text, no quotes or punctuation.
+
+        Conversation:
+        \(messages.map { "\($0.role.rawValue): \($0.content)" }.joined(separator: "\n\n"))
+        """
+
+        let summaryMessages = [
+            Message(id: UUID(), role: .system, content: "You are a helpful assistant that creates concise titles for conversations.", timestamp: Date()),
+            Message(id: UUID(), role: .user, content: summaryPrompt, timestamp: Date())
+        ]
+
+        let urlString = "\(baseURL)/chat"
+        print("Generating title using: \(urlString)")
+
+        guard let url = URL(string: urlString) else {
+            print("Invalid URL: \(urlString)")
+            throw URLError(.badURL)
+        }
+
+        let ollamaMessages = summaryMessages.map { message -> [String: String] in
+            return [
+                "role": message.role.rawValue,
+                "content": message.content
+            ]
+        }
+
+        let requestBody: [String: Any] = [
+            "model": model,
+            "messages": ollamaMessages,
+            "stream": false
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // Add API key if available
+        let secureStorage = SecureStorageService()
+        if let apiKey = secureStorage.getAPIKey(),
+           !apiKey.isEmpty {
+            request.setValue(apiKey, forHTTPHeaderField: "Authorization")
+        }
+
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            print("Failed to serialize request body for title generation")
+            throw URLError(.cannotParseResponse)
+        }
+
+        request.httpBody = jsonData
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
+                let statusString = HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)
+                var errorBody = ""
+                if let responseString = String(data: data, encoding: .utf8) {
+                    errorBody = ": \(responseString)"
+                }
+                let errorMessage = "Title generation error \(httpResponse.statusCode) \(statusString)\(errorBody)"
+                throw NSError(domain: "OllamaTitleError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+            }
+
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Title generation response: \(responseString)")
+            }
+
+            // Try to decode as our expected format
+            do {
+                let ollamaResponse = try JSONDecoder().decode(OllamaChatResponse.self, from: data)
+                let title = ollamaResponse.message.content.trimmingCharacters(in: .whitespacesAndNewlines)
+                // Clean up the title - remove quotes, punctuation, etc.
+                let cleanedTitle = title.replacingOccurrences(of: "\"", with: "")
+                    .replacingOccurrences(of: "'", with: "")
+                    .replacingOccurrences(of: ":", with: "")
+                    .replacingOccurrences(of: "`", with: "")
+                    .components(separatedBy: .whitespacesAndNewlines).prefix(4).joined(separator: " ")
+                return cleanedTitle
+            } catch {
+                // Try to extract content directly
+                if let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let message = jsonObject["message"] as? [String: Any],
+                   let content = message["content"] as? String {
+                    let cleanedTitle = content.trimmingCharacters(in: .whitespacesAndNewlines)
+                        .replacingOccurrences(of: "\"", with: "")
+                        .components(separatedBy: .whitespacesAndNewlines).prefix(4).joined(separator: " ")
+                    return cleanedTitle
+                }
+                throw error
+            }
+        } catch {
+            print("Error generating title: \(error)")
+            throw error
+        }
+    }
+
     func generateChatResponse(messages: [Message], model: String) async throws -> String {
         let urlString = "\(baseURL)/chat"
         print("Attempting to connect to: \(urlString)")
