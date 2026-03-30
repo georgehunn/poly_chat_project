@@ -209,6 +209,9 @@ struct ChatView: View {
         lastMessageToSend = messageText
         messageText = ""
 
+        // Explicitly dismiss keyboard when sending message
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+
         Task {
             isLoading = true
             defer { isLoading = false }
