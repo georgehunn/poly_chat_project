@@ -237,10 +237,19 @@ struct MessageView: View {
             if message.role == .user { Spacer() }
 
             VStack(alignment: message.role == .user ? .trailing : .leading) {
-                MarkdownText(markdown: message.content)
-                    .padding()
-                    .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
-                    .cornerRadius(10)
+                // Show document preview if attached
+                if let attachment = message.documentAttachment {
+                    DocumentAttachmentView(attachment: attachment)
+                        .padding(.bottom, 4)
+                }
+
+                // Only show content if it has actual text (not just document marker)
+                if message.role == .assistant || hasContentToShow(message.content) {
+                    MarkdownText(markdown: getDisplayContent(message.content))
+                        .padding()
+                        .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
+                        .cornerRadius(10)
+                }
 
                 Text(formatDate(message.timestamp))
                     .font(.caption)
@@ -252,10 +261,64 @@ struct MessageView: View {
         .padding(.horizontal)
     }
 
+    private func hasContentToShow(_ content: String) -> Bool {
+        // Remove the document marker to check if there's actual content
+        let markerStart = "--- Attached Document:"
+
+        // If no marker, check if content is not empty
+        guard content.contains(markerStart) else {
+            return !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+
+        // Has marker - extract text before the marker
+        if let markerRange = content.range(of: markerStart) {
+            // Use ..< to exclude the marker start from the text
+            let textBeforeMarker = String(content[..<markerRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+            // Show content only if there's actual text before the marker
+            return !textBeforeMarker.isEmpty
+        }
+
+        return false
+    }
+
+    private func getDisplayContent(_ content: String) -> String {
+        // If no document attachment, return as-is
+        guard content.contains("--- Attached Document:") else {
+            return content
+        }
+
+        // Extract text before the document marker
+        if let markerRange = content.range(of: "--- Attached Document:") {
+            // Get everything before the marker (use ..< to exclude the marker start)
+            let textBeforeMarker = String(content[..<markerRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+            return textBeforeMarker
+        }
+
+        return content
+    }
+
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+}
+
+struct DocumentAttachmentView: View {
+    let attachment: DocumentAttachment
+
+    var body: some View {
+        HStack {
+            Image(systemName: "doc.text.fill")
+                .foregroundColor(.blue)
+            Text(attachment.filename)
+                .font(.footnote)
+                .foregroundColor(.blue)
+            Spacer()
+        }
+        .padding(8)
+        .background(Color.blue.opacity(0.1))
+        .cornerRadius(8)
     }
 }
 

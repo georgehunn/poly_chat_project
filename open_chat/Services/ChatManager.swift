@@ -115,12 +115,19 @@ class ChatManager: ObservableObject {
             throw ChatError.conversationNotFound
         }
 
-        // Add user message to conversation
         var updatedConversation = conversations[index]
+
+        // If we have a document attachment, enrich the message content now
+        // This ensures only one message is created with both text and document info
+        var finalContent = message
+        if let attachment = documentAttachment, !attachment.textContent.isEmpty {
+            finalContent = message + "\n\n--- Attached Document: \(attachment.filename) ---\n\(attachment.textContent)\n--- End of Attachment ---"
+        }
+
         let userMessage = Message(
             id: UUID(),
             role: .user,
-            content: message,
+            content: finalContent,
             timestamp: Date(),
             documentAttachment: documentAttachment
         )
@@ -141,27 +148,8 @@ class ChatManager: ObservableObject {
 
     private func sendRegularMessage(conversation: Conversation, atIndex index: Int) async throws -> String {
         do {
-            // Create a copy of messages with document content enriched in the user message
-            var enrichedMessages = conversation.messages
-
-            // Find the most recent user message and enrich it with document content if present
-            if let lastUserMessageIndex = enrichedMessages.indices.reversed().first(where: { enrichedMessages[$0].role == .user }) {
-                let userMessage = enrichedMessages[lastUserMessageIndex]
-                if let attachment = userMessage.documentAttachment, !attachment.textContent.isEmpty {
-                    // Create a new message with document content appended
-                    let enrichedMessage = Message(
-                        id: userMessage.id,
-                        role: userMessage.role,
-                        content: userMessage.content + "\n\n--- Attached Document: \(attachment.filename) ---\n\(attachment.textContent)\n--- End of Attachment ---",
-                        timestamp: userMessage.timestamp,
-                        documentAttachment: userMessage.documentAttachment
-                    )
-                    enrichedMessages[lastUserMessageIndex] = enrichedMessage
-                }
-            }
-
             let response = try await OllamaService.shared.generateChatResponse(
-                messages: enrichedMessages,
+                messages: conversation.messages,
                 model: conversation.model.name
             )
 
