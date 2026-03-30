@@ -53,6 +53,11 @@ struct ModelDetailView: View {
                     }
                 }
 
+                // Provider
+                SectionView(title: "Provider") {
+                    DetailRow(label: "Provider", value: model.provider)
+                }
+
                 // Technical Specifications
                 SectionView(title: "Technical Specifications") {
                     VStack(spacing: 12) {
@@ -69,7 +74,7 @@ struct ModelDetailView: View {
                         }
 
                         if let contextLength = detailedModel?.contextLength ?? model.contextLength {
-                            DetailRow(label: "Context Length", value: "\(contextLength) tokens")
+                            DetailRow(label: "Context Length", value: "\(contextLength)")
                         }
                     }
                 }
@@ -92,11 +97,6 @@ struct ModelDetailView: View {
                             isEnabled: detailedModel?.hasTools ?? model.hasTools ?? false
                         )
                     }
-                }
-
-                // Provider Information
-                SectionView(title: "Provider") {
-                    DetailRow(label: "Provider", value: model.provider)
                 }
             }
             .padding()

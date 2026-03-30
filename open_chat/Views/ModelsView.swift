@@ -234,6 +234,7 @@ struct ComparisonGridView: View {
                 VStack(alignment: .leading) {
                     Text(model1.displayName)
                         .font(.headline)
+                        .fontWeight(.bold)
                     Text(model1.name)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -242,6 +243,7 @@ struct ComparisonGridView: View {
                 VStack(alignment: .trailing) {
                     Text(model2.displayName)
                         .font(.headline)
+                        .fontWeight(.bold)
                     Text(model2.name)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -250,90 +252,290 @@ struct ComparisonGridView: View {
 
             Divider()
 
-            // Parameters
-            DetailComparisonRow(
-                label: "Parameters",
-                value1: model1.parameterSize ?? "Unknown",
-                value2: model2.parameterSize ?? "Unknown"
-            )
-
-            // Quantization
-            DetailComparisonRow(
-                label: "Quantization",
-                value1: model1.quantizationLevel ?? "Unknown",
-                value2: model2.quantizationLevel ?? "Unknown"
-            )
-
-            // Family
-            DetailComparisonRow(
-                label: "Family",
-                value1: model1.family ?? "Unknown",
-                value2: model2.family ?? "Unknown"
-            )
-
-            // Context Length
-            DetailComparisonRow(
-                label: "Context Length",
-                value1: model1.contextLength != nil ? "\(model1.contextLength!) tokens" : "Unknown",
-                value2: model2.contextLength != nil ? "\(model2.contextLength!) tokens" : "Unknown"
-            )
-
-            // Capabilities
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Capabilities")
+            // Provider Section
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Provider")
                     .font(.headline)
-
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading) {
-                        Text("Text Generation")
-                            .font(.subheadline)
-                        Image(systemName: model1.capabilities.contains("text-generation") ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundColor(model1.capabilities.contains("text-generation") ? .green : .red)
-                    }
-
-                    VStack(alignment: .leading) {
-                        Text("Text Generation")
-                            .font(.subheadline)
-                        Image(systemName: model2.capabilities.contains("text-generation") ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundColor(model2.capabilities.contains("text-generation") ? .green : .red)
-                    }
+                    .fontWeight(.semibold)
+                HStack(alignment: .center, spacing: 12) {
+                    Spacer()
+                    Text(model1.provider)
+                        .font(.body)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    Spacer()
+                    Text(model2.provider)
+                        .font(.body)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
+            }
+            .padding(.horizontal)
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(8)
 
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading) {
-                        Text("Vision/Multimodal")
-                            .font(.subheadline)
-                        Image(systemName: model1.hasVision == true ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundColor(model1.hasVision == true ? .green : .red)
+            // Description Section
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Description")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                HStack(alignment: .center, spacing: 12) {
+                    Spacer()
+                    if let description = model1.description, !description.isEmpty {
+                        Text(description.count > 50 ? String(description.prefix(50)) + "..." : description)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    } else {
+                        Text("N/A")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
                     }
-
-                    VStack(alignment: .leading) {
-                        Text("Vision/Multimodal")
-                            .font(.subheadline)
-                        Image(systemName: model2.hasVision == true ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundColor(model2.hasVision == true ? .green : .red)
+                    Spacer()
+                    if let description = model2.description, !description.isEmpty {
+                        Text(description.count > 50 ? String(description.prefix(50)) + "..." : description)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    } else {
+                        Text("N/A")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                 }
             }
+            .padding(.horizontal)
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(8)
+
+            Divider()
+
+            // Technical Specifications Section
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Technical Specifications")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+
+                // Parameters
+                HStack(alignment: .center, spacing: 12) {
+                    Text("Parameters")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(width: 100, alignment: .leading)
+                    Spacer()
+                    if let param1 = model1.parameterSize {
+                        Text(param1)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    } else {
+                        Text("N/A")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    Spacer()
+                    if let param2 = model2.parameterSize {
+                        Text(param2)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    } else {
+                        Text("N/A")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                }
+
+                // Quantization
+                HStack(alignment: .center, spacing: 12) {
+                    Text("Quantization")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(width: 100, alignment: .leading)
+                    Spacer()
+                    if let quant1 = model1.quantizationLevel {
+                        Text(quant1)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    } else {
+                        Text("N/A")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    Spacer()
+                    if let quant2 = model2.quantizationLevel {
+                        Text(quant2)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    } else {
+                        Text("N/A")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                }
+
+                // Family
+                HStack(alignment: .center, spacing: 12) {
+                    Text("Family")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(width: 100, alignment: .leading)
+                    Spacer()
+                    if let fam1 = model1.family {
+                        Text(fam1)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    } else {
+                        Text("N/A")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    Spacer()
+                    if let fam2 = model2.family {
+                        Text(fam2)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    } else {
+                        Text("N/A")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                }
+
+                // Context Length
+                HStack(alignment: .center, spacing: 12) {
+                    Text("Context Length")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(width: 100, alignment: .leading)
+                    Spacer()
+                    if let ctx1 = model1.contextLength {
+                        Text("\(ctx1)")
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    } else {
+                        Text("N/A")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    Spacer()
+                    if let ctx2 = model2.contextLength {
+                        Text("\(ctx2)")
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    } else {
+                        Text("N/A")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                }
+            }
+            .padding(.horizontal)
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(8)
+
+            Divider()
+
+            // Capabilities Section
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Capabilities")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+
+                // Text Generation
+                HStack(alignment: .center, spacing: 12) {
+                    Text("Text Generation")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(width: 120, alignment: .leading)
+                    Spacer()
+                    if (model1.capabilities.contains("text-generation")) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.body)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
+                            .font(.body)
+                    }
+                    Spacer()
+                    if (model2.capabilities.contains("text-generation")) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.body)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
+                            .font(.body)
+                    }
+                }
+
+                // Vision/Multimodal
+                HStack(alignment: .center, spacing: 12) {
+                    Text("Vision/Multimodal")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(width: 120, alignment: .leading)
+                    Spacer()
+                    if model1.hasVision == true {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.body)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
+                            .font(.body)
+                    }
+                    Spacer()
+                    if model2.hasVision == true {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.body)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
+                            .font(.body)
+                    }
+                }
+
+                // Tool Use
+                HStack(alignment: .center, spacing: 12) {
+                    Text("Tool Use")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(width: 120, alignment: .leading)
+                    Spacer()
+                    if model1.hasTools == true {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.body)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
+                            .font(.body)
+                    }
+                    Spacer()
+                    if model2.hasTools == true {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.body)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
+                            .font(.body)
+                    }
+                }
+            }
+            .padding(.horizontal)
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(8)
         }
         .padding()
-    }
-}
-
-struct DetailComparisonRow: View {
-    let label: String
-    let value1: String
-    let value2: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(label)
-                .font(.headline)
-
-                Text(value1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Text(value2)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-        }
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
     }
 }
