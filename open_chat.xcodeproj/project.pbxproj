@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E01D2D112F79C0C80099482A /* MarkdownExtendedView in Frameworks */ = {isa = PBXBuildFile; productRef = E01D2D102F79C0C80099482A /* MarkdownExtendedView */; };
+		E01D2D122F79C8D90099482A /* PDFKit */ = {isa = PBXBuildFile; framework = PDFKit; settings = {ATTRIBUTES = (Weak, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		E01D2C9A2F7318230099482A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +57,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E01D2D112F79C0C80099482A /* MarkdownExtendedView in Frameworks */,
+				E01D2D122F79C8D90099482A /* PDFKit */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +119,7 @@
 			);
 			name = open_chat;
 			packageProductDependencies = (
+				E01D2D102F79C0C80099482A /* MarkdownExtendedView */,
 			);
 			productName = open_chat;
 			productReference = E01D2C892F7318220099482A /* open_chat.app */;
@@ -195,6 +203,9 @@
 			);
 			mainGroup = E01D2C802F7318220099482A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E01D2D0D2F79C0400099482A /* XCRemoteSwiftPackageReference "MarkdownExtendedView" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E01D2C8A2F7318220099482A /* Products */;
 			projectDirPath = "";
@@ -601,6 +612,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E01D2D0D2F79C0400099482A /* XCRemoteSwiftPackageReference "MarkdownExtendedView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ChrisGVE/MarkdownExtendedView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E01D2D102F79C0C80099482A /* MarkdownExtendedView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E01D2D0D2F79C0400099482A /* XCRemoteSwiftPackageReference "MarkdownExtendedView" */;
+			productName = MarkdownExtendedView;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E01D2C812F7318220099482A /* Project object */;
 }

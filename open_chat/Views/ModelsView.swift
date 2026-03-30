@@ -5,6 +5,9 @@ struct ModelsView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var navigationPath = NavigationPath()
     @Binding var selectedModel: ModelInfo?
+    @State private var compareModel1: ModelInfo?
+    @State private var compareModel2: ModelInfo?
+    @State private var isComparing = false
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -49,11 +52,27 @@ struct ModelsView: View {
                     .environmentObject(modelManager)
             }
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if !modelManager.models.isEmpty {
+                        Button(action: { isComparing = true }) {
+                            Label("Compare", systemImage: "arrow.left.arrow.right")
+                        }
+                        .disabled(modelManager.models.count < 2)
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
+            }
+            .sheet(isPresented: $isComparing) {
+                ModelComparisonView(
+                    model1: $compareModel1,
+                    model2: $compareModel2,
+                    isPresented: $isComparing
+                )
+                .environmentObject(modelManager)
             }
             .onAppear {
                 if modelManager.models.isEmpty && !modelManager.isLoading {
@@ -144,5 +163,177 @@ struct ModelRowView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+struct ModelComparisonView: View {
+    @Binding var model1: ModelInfo?
+    @Binding var model2: ModelInfo?
+    @Binding var isPresented: Bool
+    @EnvironmentObject private var modelManager: ModelManager
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Select Models to Compare")) {
+                    Picker("First Model", selection: $model1) {
+                        Text("None").tag(Optional<ModelInfo>.none)
+                        ForEach(sortedModels, id: \.self) { model in
+                            Text(model.displayName).tag(Optional(model))
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+
+                    Picker("Second Model", selection: $model2) {
+                        Text("None").tag(Optional<ModelInfo>.none)
+                        ForEach(sortedModels, id: \.self) { model in
+                            Text(model.displayName).tag(Optional(model))
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                }
+
+                if let model1 = model1, let model2 = model2 {
+                    Section(header: Text("Comparison")) {
+                        ComparisonGridView(model1: model1, model2: model2)
+                    }
+                }
+            }
+            .navigationTitle("Compare Models")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        isPresented = false
+                        model1 = nil
+                        model2 = nil
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        isPresented = false
+                    }
+                    .disabled(model1 == nil || model2 == nil)
+                }
+            }
+        }
+    }
+
+    private var sortedModels: [ModelInfo] {
+        modelManager.models.sorted { $0.name < $1.name }
+    }
+}
+
+struct ComparisonGridView: View {
+    let model1: ModelInfo
+    let model2: ModelInfo
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Model Names Header
+            HStack {
+                VStack(alignment: .leading) {
+                    Text(model1.displayName)
+                        .font(.headline)
+                    Text(model1.name)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                VStack(alignment: .trailing) {
+                    Text(model2.displayName)
+                        .font(.headline)
+                    Text(model2.name)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Divider()
+
+            // Parameters
+            DetailComparisonRow(
+                label: "Parameters",
+                value1: model1.parameterSize ?? "Unknown",
+                value2: model2.parameterSize ?? "Unknown"
+            )
+
+            // Quantization
+            DetailComparisonRow(
+                label: "Quantization",
+                value1: model1.quantizationLevel ?? "Unknown",
+                value2: model2.quantizationLevel ?? "Unknown"
+            )
+
+            // Family
+            DetailComparisonRow(
+                label: "Family",
+                value1: model1.family ?? "Unknown",
+                value2: model2.family ?? "Unknown"
+            )
+
+            // Context Length
+            DetailComparisonRow(
+                label: "Context Length",
+                value1: model1.contextLength != nil ? "\(model1.contextLength!) tokens" : "Unknown",
+                value2: model2.contextLength != nil ? "\(model2.contextLength!) tokens" : "Unknown"
+            )
+
+            // Capabilities
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Capabilities")
+                    .font(.headline)
+
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading) {
+                        Text("Text Generation")
+                            .font(.subheadline)
+                        Image(systemName: model1.capabilities.contains("text-generation") ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .foregroundColor(model1.capabilities.contains("text-generation") ? .green : .red)
+                    }
+
+                    VStack(alignment: .leading) {
+                        Text("Text Generation")
+                            .font(.subheadline)
+                        Image(systemName: model2.capabilities.contains("text-generation") ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .foregroundColor(model2.capabilities.contains("text-generation") ? .green : .red)
+                    }
+                }
+
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading) {
+                        Text("Vision/Multimodal")
+                            .font(.subheadline)
+                        Image(systemName: model1.hasVision == true ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .foregroundColor(model1.hasVision == true ? .green : .red)
+                    }
+
+                    VStack(alignment: .leading) {
+                        Text("Vision/Multimodal")
+                            .font(.subheadline)
+                        Image(systemName: model2.hasVision == true ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .foregroundColor(model2.hasVision == true ? .green : .red)
+                    }
+                }
+            }
+        }
+        .padding()
+    }
+}
+
+struct DetailComparisonRow: View {
+    let label: String
+    let value1: String
+    let value2: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.headline)
+
+                Text(value1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(value2)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+        }
     }
 }

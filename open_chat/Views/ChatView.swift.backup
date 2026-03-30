@@ -1,8 +1,5 @@
 import SwiftUI
 import Foundation
-import PDFKit
-import UniformTypeIdentifiers
-import UIKit
 
 struct ChatView: View {
     let conversationId: UUID
@@ -13,10 +10,6 @@ struct ChatView: View {
     @State private var showingUnsupportedURLAlert = false
     @State private var showingSettings = false
     @State private var lastMessageToSend = ""
-    @State private var showingDocumentPicker = false
-    @State private var showingDocumentPreview: (URL, String)? = nil
-    @State private var showingDocumentErrorAlert = false
-    @State private var documentErrorMessage = ""
     @EnvironmentObject private var chatManager: ChatManager
 
     var conversation: Conversation? {
@@ -26,6 +19,7 @@ struct ChatView: View {
     var body: some View {
         VStack {
             if let conversation = conversation {
+                // Display model information
                 HStack {
                     Text("Model: \(conversation.model.displayName) (\(conversation.model.provider))")
                         .font(.caption)
@@ -61,13 +55,6 @@ struct ChatView: View {
                 }
 
                 HStack {
-                    Button(action: { showingDocumentPicker = true }) {
-                        Image(systemName: "paperclip")
-                            .foregroundColor(.blue)
-                    }
-                    .disabled(isLoading)
-                    .padding(.trailing, 4)
-
                     TextField("Message", text: $messageText, axis: .vertical)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
@@ -83,25 +70,12 @@ struct ChatView: View {
                         Image(systemName: "paperplane.fill")
                             .foregroundColor(.blue)
                     }
-                    .disabled((messageText.isEmpty && showingDocumentPreview == nil) || isLoading)
+                    .disabled(messageText.isEmpty || isLoading)
                     .padding(.trailing, 4)
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
                 .background(Color(.systemGroupedBackground))
-
-                if let (fileURL, fileName) = showingDocumentPreview {
-                    DocumentPreviewView(
-                        fileURL: fileURL,
-                        fileName: fileName,
-                        onRemove: {
-                            if let (fileURL, _) = showingDocumentPreview {
-                                try? FileManager.default.removeItem(at: fileURL)
-                            }
-                            showingDocumentPreview = nil
-                        }
-                    )
-                }
             } else {
                 Text("Conversation not found")
                     .foregroundColor(.red)
@@ -122,7 +96,17 @@ struct ChatView: View {
                 showingSettings = true
             }
             Button("Retry") {
-                retrySend()
+                if let conversation = conversation {
+                    Task {
+                        isLoading = true
+                        defer { isLoading = false }
+                        do {
+                            _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
+                        } catch {
+                            print("Retry error: \(error)")
+                        }
+                    }
+                }
             }
         } message: {
             Text("The server returned 401 Unauthorized. This usually means the API key is invalid or the endpoint URL is incorrect.")
@@ -133,97 +117,66 @@ struct ChatView: View {
                 showingSettings = true
             }
             Button("Retry") {
-                retrySend()
+                if let conversation = conversation {
+                    Task {
+                        isLoading = true
+                        defer { isLoading = false }
+                        do {
+                            _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
+                        } catch {
+                            print("Retry error: \(error)")
+                        }
+                    }
+                }
             }
         } message: {
-            Text("The URL is not supported. Please check if the endpoint URL is correct.")
-        }
-        .alert("Document Processing Error", isPresented: $showingDocumentErrorAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(documentErrorMessage)
+            Text("The URL is not supported. Please check if the endpoint URL is correct and points to a valid Ollama server.")
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
-        .sheet(isPresented: $showingDocumentPicker) {
-            DocumentPicker(
-                onDocumentSelected: handleDocumentSelected,
-                fileTypes: [.pdf]
-            )
-        }
-    }
-
-    private func retrySend() {
-        guard let conversation = conversation else { return }
-        Task {
-            isLoading = true
-            defer { isLoading = false }
-            do {
-                _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
-            } catch {
-                print("Retry error: \(error)")
-            }
-        }
-    }
-
-    private func handleDocumentSelected(_ fileURL: URL) {
-        Task {
-            isLoading = true
-            defer { isLoading = false }
-
-            guard fileURL.startAccessingSecurityScopedResource() else { return }
-            defer { fileURL.stopAccessingSecurityScopedResource() }
-
-            do {
-                let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-                let docsURL = documentsDir.appendingPathComponent(fileURL.lastPathComponent)
-
-                if FileManager.default.fileExists(atPath: docsURL.path) {
-                    try? FileManager.default.removeItem(at: docsURL)
-                }
-
-                try FileManager.default.copyItem(at: fileURL, to: docsURL)
-
-                let attachment = try await PDFDocumentService.shared.processPDF(from: docsURL)
-                showingDocumentPreview = (docsURL, attachment.filename)
-            } catch {
-                documentErrorMessage = error.localizedDescription
-                showingDocumentErrorAlert = true
-            }
-        }
     }
 
     private func getConfigAlertMessage() -> String {
-        OllamaService.getConfigStatusMessage()
+        return OllamaService.getConfigStatusMessage()
     }
 
     private func sendMessage() {
+        // Check if URL is configured before sending message
         if !OllamaService.isConfigured() {
             showingConfigAlert = true
             return
         }
 
-        guard let conversation = conversation else { return }
+        guard !messageText.isEmpty, let conversation = conversation else { return }
 
+        // Save the message for potential retries
         lastMessageToSend = messageText
-        messageText = ""
+        messageText = "" // Clear the text field immediately
 
         Task {
             isLoading = true
             defer { isLoading = false }
 
             do {
-                if let (fileURL, _) = showingDocumentPreview {
-                    _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation, withPDFAt: fileURL)
-                    try? FileManager.default.removeItem(at: fileURL)
-                    showingDocumentPreview = nil
-                } else {
-                    _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
-                }
+                _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
             } catch {
-                documentErrorMessage = error.localizedDescription
-                showingDocumentErrorAlert = true
+                print("Error sending message: \(error)")
+
+                // Check for specific error types and show appropriate alerts
+                let nsError = error as NSError
+                let errorDomain = nsError.domain
+                let errorCode = nsError.code
+
+                print("Error domain: \(errorDomain), code: \(errorCode)")
+
+                if errorDomain == "OllamaUnauthorizedError" && errorCode == 401 {
+                    showingUnauthorizedAlert = true
+                } else if errorDomain == "OllamaUnsupportedURLError" && errorCode == 404 {
+                    showingUnsupportedURLAlert = true
+                } else {
+                    // Generic error - already handled by chatManager
+                }
             }
         }
     }
@@ -234,22 +187,38 @@ struct MessageView: View {
 
     var body: some View {
         HStack {
-            if message.role == .user { Spacer() }
+            if message.role == .user {
+                Spacer()
+            }
 
-            VStack(alignment: message.role == .user ? .trailing : .leading) {
+            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 0) {
                 MarkdownText(markdown: message.content)
                     .padding()
                     .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
                     .cornerRadius(10)
+                    .foregroundColor(message.role == .user ? .primary : .primary)
+                    .contextMenu {
+                        Button(action: copyMessage) {
+                            Label("Copy", systemImage: "doc.on.doc")
+                        }
+                    }
 
                 Text(formatDate(message.timestamp))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
+            .transition(.opacity.combined(with: .scale))
 
-            if message.role == .assistant { Spacer() }
+            if message.role == .assistant {
+                Spacer()
+            }
         }
         .padding(.horizontal)
+    }
+
+    private func copyMessage() {
+        UIPasteboard.general.string = message.content
     }
 
     private func formatDate(_ date: Date) -> String {
@@ -259,25 +228,13 @@ struct MessageView: View {
     }
 }
 
-struct DocumentPreviewView: View {
-    let fileURL: URL
-    let fileName: String
-    let onRemove: () -> Void
 
-    var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Image(systemName: "doc.text.fill")
-                Text(fileName)
-                Spacer()
-                Button(action: onRemove) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.red)
-                }
-            }
-            Divider()
+struct ChatView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationView {
+            ChatView(conversationId: UUID())
+                .environmentObject(ChatManager())
         }
-        .padding()
     }
 }
 
@@ -285,6 +242,23 @@ struct MarkdownText: View {
     let markdown: String
 
     var body: some View {
-        Text(markdown)
+        let lines = markdown.components(separatedBy: "\n")
+
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(lines, id: \.self) { line in
+                if !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    if let attributed = try? AttributedString(markdown: line) {
+                        Text(attributed)
+                            .font(.body)
+                    } else {
+                        Text(line)
+                            .font(.body)
+                    }
+                } else {
+                    // Empty line - create spacing
+                    Spacer(minLength: 4)
+                }
+            }
+        }
     }
 }

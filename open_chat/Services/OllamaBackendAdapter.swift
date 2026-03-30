@@ -1,5 +1,4 @@
 import Foundation
-import open_chat
 
 /// Backend adapter for Ollama API
 class OllamaBackendAdapter: BackendAdapter {

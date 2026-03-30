@@ -1,0 +1,42 @@
+{
+  "originHash" : "85c2715a47e964b7b85eb9ccb9fe127e28a63e3e86a77b88a4e318761578b73c",
+  "pins" : [
+    {
+      "identity" : "extendedswiftmath",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ChrisGVE/ExtendedSwiftMath.git",
+      "state" : {
+        "revision" : "06051b74de2f2dd9b925ce61b4a5460b923a3866",
+        "version" : "2.0.4"
+      }
+    },
+    {
+      "identity" : "markdownextendedview",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ChrisGVE/MarkdownExtendedView.git",
+      "state" : {
+        "revision" : "f28b7c45c812aedd4fe3e3e2214d7f53b8dd7bb0",
+        "version" : "1.2.4"
+      }
+    },
+    {
+      "identity" : "swift-cmark",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-cmark.git",
+      "state" : {
+        "revision" : "5d9bdaa4228b381639fff09403e39a04926e2dbe",
+        "version" : "0.7.1"
+      }
+    },
+    {
+      "identity" : "swift-markdown",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-markdown.git",
+      "state" : {
+        "revision" : "7d9a5ce307528578dfa777d505496bd5f544ad94",
+        "version" : "0.7.3"
+      }
+    }
+  ],
+  "version" : 3
+}

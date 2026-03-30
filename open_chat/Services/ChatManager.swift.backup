@@ -1,7 +1,6 @@
 import Foundation
 import Combine
-import UniformTypeIdentifiers
-import PDFKit
+import open_chat
 
 class ChatManager: ObservableObject {
     @Published var conversations: [Conversation] = []
@@ -42,41 +41,6 @@ class ChatManager: ObservableObject {
     func deleteConversation(_ conversation: Conversation) {
         conversations.removeAll { $0.id == conversation.id }
         storageService.saveConversations(conversations)
-
-        // Clean up any PDF files that are no longer referenced by any conversation
-        Task { [weak self] in
-            await self?.cleanupUnusedPDFFiles()
-        }
-    }
-
-    /// Clean up PDF files that are no longer referenced by any conversation
-    private func cleanupUnusedPDFFiles() async {
-        let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-
-        // Get all filenames from all conversations
-        var usedFilenames = Set<String>()
-        for conversation in conversations {
-            for message in conversation.messages {
-                if let filename = message.documentAttachment?.filename {
-                    usedFilenames.insert(filename)
-                }
-            }
-        }
-
-        // Remove PDF files not in the used list
-        do {
-            let files = try FileManager.default.contentsOfDirectory(at: documentsDir, includingPropertiesForKeys: nil)
-            for fileURL in files {
-                if fileURL.pathExtension == "pdf" {
-                    if !usedFilenames.contains(fileURL.lastPathComponent) {
-                        print("Removing unused PDF: \(fileURL.lastPathComponent)")
-                        try FileManager.default.removeItem(at: fileURL)
-                    }
-                }
-            }
-        } catch {
-            print("Error cleaning up PDF files: \(error)")
-        }
     }
 
     func renameConversation(_ conversation: Conversation, to newName: String) {
@@ -89,24 +53,7 @@ class ChatManager: ObservableObject {
         storageService.saveConversations(conversations)
     }
 
-    /// Send a message with PDF document attachment
-    /// - Parameters:
-    ///   - message: The text message to send
-    ///   - conversation: The conversation to send to
-    ///   - pdfFileURL: The URL of the PDF file to attach
-    /// - Returns: The assistant's response
-    /// - Throws: ChatError or PDFDocumentService.PDFError
-    func sendMessage(_ message: String, in conversation: Conversation, withPDFAt pdfFileURL: URL) async throws -> String {
-        do {
-            let documentAttachment = try await PDFDocumentService.shared.processPDF(from: pdfFileURL)
-            return try await sendMessage(message, in: conversation, with: documentAttachment)
-        } catch {
-            // Handle all errors as PDF processing failures
-            throw ChatError.pdfProcessingFailed(error)
-        }
-    }
-
-    func sendMessage(_ message: String, in conversation: Conversation, with documentAttachment: DocumentAttachment? = nil) async throws -> String {
+    func sendMessage(_ message: String, in conversation: Conversation) async throws -> String {
         // Clear any previous error message
         errorMessage = nil
 
@@ -121,8 +68,7 @@ class ChatManager: ObservableObject {
             id: UUID(),
             role: .user,
             content: message,
-            timestamp: Date(),
-            documentAttachment: documentAttachment
+            timestamp: Date()
         )
         updatedConversation.messages.append(userMessage)
 
@@ -141,27 +87,8 @@ class ChatManager: ObservableObject {
 
     private func sendRegularMessage(conversation: Conversation, atIndex index: Int) async throws -> String {
         do {
-            // Create a copy of messages with document content enriched in the user message
-            var enrichedMessages = conversation.messages
-
-            // Find the most recent user message and enrich it with document content if present
-            if let lastUserMessageIndex = enrichedMessages.indices.reversed().first(where: { enrichedMessages[$0].role == .user }) {
-                let userMessage = enrichedMessages[lastUserMessageIndex]
-                if let attachment = userMessage.documentAttachment, !attachment.textContent.isEmpty {
-                    // Create a new message with document content appended
-                    let enrichedMessage = Message(
-                        id: userMessage.id,
-                        role: userMessage.role,
-                        content: userMessage.content + "\n\n--- Attached Document: \(attachment.filename) ---\n\(attachment.textContent)\n--- End of Attachment ---",
-                        timestamp: userMessage.timestamp,
-                        documentAttachment: userMessage.documentAttachment
-                    )
-                    enrichedMessages[lastUserMessageIndex] = enrichedMessage
-                }
-            }
-
             let response = try await OllamaService.shared.generateChatResponse(
-                messages: enrichedMessages,
+                messages: conversation.messages,
                 model: conversation.model.name
             )
 
@@ -205,8 +132,4 @@ class ChatManager: ObservableObject {
 
 enum ChatError: Error {
     case conversationNotFound
-    case pdfProcessingFailed(Error)
-    case documentTooLarge
-    case noTextInDocument
-    case invalidPDF
 }

@@ -1,5 +1,4 @@
 import Foundation
-@testable import open_chat
 
 class OllamaService {
     static let shared = OllamaService()

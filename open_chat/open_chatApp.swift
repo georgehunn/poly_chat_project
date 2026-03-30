@@ -1,4 +1,5 @@
 import SwiftUI
+import open_chat
 
 @main
 struct OpenChatApp: App {
@@ -10,6 +11,12 @@ struct OpenChatApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    // Clean up old PDF files when app launches
+                    Task {
+                        await PDFDocumentService.shared.cleanupOldPDFFiles()
+                    }
+                }
                 .environmentObject(chatManager)
                 .environmentObject(modelManager)
                 .preferredColorScheme(darkMode ? .dark : .light)

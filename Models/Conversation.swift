@@ -46,13 +46,13 @@ struct Message: Identifiable, Codable {
     }
 }
 
-public struct DocumentAttachment: Codable, Identifiable {
-    public let id: UUID
-    public let filename: String
-    public let textContent: String
-    public let createdAt: Date
+struct DocumentAttachment: Codable, Identifiable {
+    let id: UUID
+    let filename: String
+    let textContent: String
+    let createdAt: Date
 
-    public init(filename: String, textContent: String) {
+    init(filename: String, textContent: String) {
         self.id = UUID()
         self.filename = filename
         self.textContent = textContent

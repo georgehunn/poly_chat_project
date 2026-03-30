@@ -1,5 +1,4 @@
 import Foundation
-import open_chat
 
 /// A protocol that defines the interface for backend adapters
 protocol BackendAdapter {

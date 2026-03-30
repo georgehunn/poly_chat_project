@@ -29,7 +29,6 @@ struct Message: Identifiable, Codable {
     let role: Role
     let content: String
     let timestamp: Date
-    let documentAttachment: DocumentAttachment?
 
     enum Role: String, Codable {
         case system
@@ -37,28 +36,15 @@ struct Message: Identifiable, Codable {
         case assistant
     }
 
-    init(id: UUID = UUID(), role: Role, content: String, timestamp: Date = Date(), documentAttachment: DocumentAttachment? = nil) {
+    init(id: UUID = UUID(), role: Role, content: String, timestamp: Date = Date()) {
         self.id = id
         self.role = role
         self.content = content
         self.timestamp = timestamp
-        self.documentAttachment = documentAttachment
     }
 }
 
-public struct DocumentAttachment: Codable, Identifiable {
-    public let id: UUID
-    public let filename: String
-    public let textContent: String
-    public let createdAt: Date
 
-    public init(filename: String, textContent: String) {
-        self.id = UUID()
-        self.filename = filename
-        self.textContent = textContent
-        self.createdAt = Date()
-    }
-}
 
 struct ModelInfo: Codable, Hashable {
     var name: String
