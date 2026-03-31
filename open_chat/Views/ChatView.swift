@@ -261,10 +261,15 @@ struct MessageView: View {
 
                 // Only show content if it has actual text (not just document marker)
                 if message.role == .assistant || hasContentToShow(message.content) {
-                    MarkdownText(markdown: getDisplayContent(message.content))
-                        .padding()
+                    Text(getDisplayContent(message.content))
+                        .padding(12)
                         .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
                         .cornerRadius(10)
+                        .contextMenu {
+                            Button(action: copyMessage) {
+                                Label("Copy", systemImage: "doc.on.doc")
+                            }
+                        }
                 }
 
                 Text(formatDate(message.timestamp))
@@ -275,6 +280,10 @@ struct MessageView: View {
             if message.role == .assistant { Spacer() }
         }
         .padding(.horizontal)
+    }
+
+    private func copyMessage() {
+        UIPasteboard.general.string = message.content
     }
 
     private func hasContentToShow(_ content: String) -> Bool {
@@ -360,10 +369,3 @@ struct DocumentPreviewView: View {
     }
 }
 
-struct MarkdownText: View {
-    let markdown: String
-
-    var body: some View {
-        Text(markdown)
-    }
-}

@@ -1,40 +1,40 @@
 {
-  "originHash" : "85c2715a47e964b7b85eb9ccb9fe127e28a63e3e86a77b88a4e318761578b73c",
+  "originHash" : "e83dcfdd0afa08637001d94ef3040bdac4f4e36eefca571b83cc3c72f73eda45",
   "pins" : [
     {
-      "identity" : "extendedswiftmath",
+      "identity" : "networkimage",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ChrisGVE/ExtendedSwiftMath.git",
+      "location" : "https://github.com/gonzalezreal/NetworkImage",
       "state" : {
-        "revision" : "06051b74de2f2dd9b925ce61b4a5460b923a3866",
-        "version" : "2.0.4"
-      }
-    },
-    {
-      "identity" : "markdownextendedview",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ChrisGVE/MarkdownExtendedView.git",
-      "state" : {
-        "revision" : "f28b7c45c812aedd4fe3e3e2214d7f53b8dd7bb0",
-        "version" : "1.2.4"
+        "revision" : "2849f5323265386e200484b0d0f896e73c3411b9",
+        "version" : "6.0.1"
       }
     },
     {
       "identity" : "swift-cmark",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/swiftlang/swift-cmark.git",
+      "location" : "https://github.com/swiftlang/swift-cmark",
       "state" : {
         "revision" : "5d9bdaa4228b381639fff09403e39a04926e2dbe",
         "version" : "0.7.1"
       }
     },
     {
-      "identity" : "swift-markdown",
+      "identity" : "swift-markdown-ui",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-markdown.git",
+      "location" : "https://github.com/gonzalezreal/swift-markdown-ui.git",
       "state" : {
-        "revision" : "7d9a5ce307528578dfa777d505496bd5f544ad94",
-        "version" : "0.7.3"
+        "revision" : "5f613358148239d0292c0cef674a3c2314737f9e",
+        "version" : "2.4.1"
+      }
+    },
+    {
+      "identity" : "swiftmath",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mgriebling/SwiftMath.git",
+      "state" : {
+        "revision" : "5c251ad21812f4d129dd8a2886723e5eabfc6054",
+        "version" : "1.7.0"
       }
     }
   ],

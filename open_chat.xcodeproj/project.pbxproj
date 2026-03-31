@@ -7,8 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		E01D2D112F79C0C80099482A /* MarkdownExtendedView in Frameworks */ = {isa = PBXBuildFile; productRef = E01D2D102F79C0C80099482A /* MarkdownExtendedView */; };
+		E01D2D112F79C0C80099482A /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = E01D2D102F79C0C80099482A /* MarkdownUI */; };
 		E01D2D122F79C8D90099482A /* (null) in Frameworks */ = {isa = PBXBuildFile; settings = {ATTRIBUTES = (Weak, ); }; };
+		E04C4B422F7AF2E40008268E /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = E04C4B412F7AF2E40008268E /* MarkdownUI */; };
+		E09F775C2F7B1E5F00D5A8FB /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = E02D2D102F79C8D90099482A /* SwiftMath */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,7 +59,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E01D2D112F79C0C80099482A /* MarkdownExtendedView in Frameworks */,
+				E09F775C2F7B1E5F00D5A8FB /* SwiftMath in Frameworks */,
+				E01D2D112F79C0C80099482A /* MarkdownUI in Frameworks */,
 				E01D2D122F79C8D90099482A /* (null) in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -73,6 +76,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E04C4B422F7AF2E40008268E /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,7 +123,8 @@
 			);
 			name = open_chat;
 			packageProductDependencies = (
-				E01D2D102F79C0C80099482A /* MarkdownExtendedView */,
+				E01D2D102F79C0C80099482A /* MarkdownUI */,
+				E02D2D102F79C8D90099482A /* SwiftMath */,
 			);
 			productName = open_chat;
 			productReference = E01D2C892F7318220099482A /* open_chat.app */;
@@ -166,6 +171,7 @@
 			);
 			name = open_chatUITests;
 			packageProductDependencies = (
+				E04C4B412F7AF2E40008268E /* MarkdownUI */,
 			);
 			productName = open_chatUITests;
 			productReference = E01D2CA32F7318230099482A /* open_chatUITests.xctest */;
@@ -204,7 +210,8 @@
 			mainGroup = E01D2C802F7318220099482A;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				E01D2D0D2F79C0400099482A /* XCRemoteSwiftPackageReference "MarkdownExtendedView" */,
+				E01D2D0D2F79C0400099482A /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+				E02D2D0E2F79C0400099482A /* XCRemoteSwiftPackageReference "SwiftMath" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E01D2C8A2F7318220099482A /* Products */;
@@ -614,21 +621,39 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		E01D2D0D2F79C0400099482A /* XCRemoteSwiftPackageReference "MarkdownExtendedView" */ = {
+		E01D2D0D2F79C0400099482A /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ChrisGVE/MarkdownExtendedView.git";
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.4;
+				minimumVersion = 2.4.1;
+			};
+		};
+		E02D2D0E2F79C0400099482A /* XCRemoteSwiftPackageReference "SwiftMath" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mgriebling/SwiftMath.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.7.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		E01D2D102F79C0C80099482A /* MarkdownExtendedView */ = {
+		E01D2D102F79C0C80099482A /* MarkdownUI */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E01D2D0D2F79C0400099482A /* XCRemoteSwiftPackageReference "MarkdownExtendedView" */;
-			productName = MarkdownExtendedView;
+			package = E01D2D0D2F79C0400099482A /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
+		};
+		E02D2D102F79C8D90099482A /* SwiftMath */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E02D2D0E2F79C0400099482A /* XCRemoteSwiftPackageReference "SwiftMath" */;
+			productName = SwiftMath;
+		};
+		E04C4B412F7AF2E40008268E /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E01D2D0D2F79C0400099482A /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
