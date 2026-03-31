@@ -248,7 +248,15 @@ struct MessageView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var messageHeight: CGFloat = 1
 
-    private let bubbleMaxWidth = UIScreen.main.bounds.width * 0.78
+    private func bubbleWidth() -> CGFloat {
+        let screen = UIScreen.main.bounds.width
+
+        if message.role == .user {
+            return screen * 0.62
+        } else {
+            return screen * 0.92
+        }
+    }
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 0) {
@@ -274,7 +282,7 @@ struct MessageView: View {
                             .padding(12)
                             .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
                             .cornerRadius(10)
-                            .frame(maxWidth: bubbleMaxWidth, alignment: message.role == .user ? .trailing : .leading)
+                            .frame(maxWidth: bubbleWidth(), alignment: message.role == .user ? .trailing : .leading)
                             .contextMenu {
                                 Button(action: copyMessage) {
                                     Label("Copy", systemImage: "doc.on.doc")
@@ -286,12 +294,12 @@ struct MessageView: View {
                             isDarkMode: colorScheme == .dark,
                             calculatedHeight: $messageHeight
                         )
-                        .frame(maxWidth: bubbleMaxWidth, alignment: .leading)
+                        .frame(maxWidth: bubbleWidth(), alignment: .leading)
                         .frame(height: max(messageHeight, 20))
                         .padding(12)
                         .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
                         .cornerRadius(10)
-                        .frame(maxWidth: bubbleMaxWidth, alignment: message.role == .user ? .trailing : .leading)
+                        .frame(maxWidth: bubbleWidth(), alignment: message.role == .user ? .trailing : .leading)
                         .contextMenu {
                             Button(action: copyMessage) {
                                 Label("Copy", systemImage: "doc.on.doc")
@@ -304,7 +312,7 @@ struct MessageView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            .frame(maxWidth: bubbleMaxWidth, alignment: message.role == .user ? .trailing : .leading)
+            .frame(maxWidth: bubbleWidth(), alignment: message.role == .user ? .trailing : .leading)
 
             if message.role == .assistant {
                 Spacer(minLength: 32)

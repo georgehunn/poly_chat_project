@@ -203,7 +203,7 @@
 					};
 				};
 			};
-			buildConfigurationList = E01D2C842F7318220099482A /* Build configuration list for PBXProject "open_chat" */;
+			buildConfigurationList = E01D2C842F7318220099482A /* Build configuration list for PBXProject "Poly_Chat" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -586,7 +586,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		E01D2C842F7318220099482A /* Build configuration list for PBXProject "open_chat" */ = {
+		E01D2C842F7318220099482A /* Build configuration list for PBXProject "Poly_Chat" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E01D2CAB2F7318230099482A /* Debug */,
