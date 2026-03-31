@@ -3,6 +3,7 @@ import Foundation
 import PDFKit
 import UniformTypeIdentifiers
 import UIKit
+import WebKit
 
 struct ChatView: View {
     let conversationId: UUID
@@ -18,6 +19,8 @@ struct ChatView: View {
     @State private var showingDocumentErrorAlert = false
     @State private var documentErrorMessage = ""
     @EnvironmentObject private var chatManager: ChatManager
+
+    @AppStorage("darkMode") private var darkMode: Bool = false
 
     var conversation: Conversation? {
         chatManager.conversations.first { $0.id == conversationId }
@@ -199,15 +202,11 @@ struct ChatView: View {
     }
 
     private func checkAndShowConfigPopup() {
-        // Only show popup if endpoint is not configured at all
         let secureStorage = SecureStorageService()
         if let endpoint = secureStorage.getEndpoint(), !endpoint.isEmpty {
-            // Endpoint exists, don't show popup
             showingConfigAlert = false
         } else {
-            // No endpoint configured, show popup instead of alert
             showingConfigAlert = false
-            // Popup will be shown via ContentView
         }
     }
 
@@ -222,7 +221,6 @@ struct ChatView: View {
         lastMessageToSend = messageText
         messageText = ""
 
-        // Explicitly dismiss keyboard when sending message
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
 
         Task {
@@ -247,39 +245,98 @@ struct ChatView: View {
 
 struct MessageView: View {
     let message: Message
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var messageHeight: CGFloat = 1
+
+    private let bubbleMaxWidth = UIScreen.main.bounds.width * 0.78
 
     var body: some View {
-        HStack {
-            if message.role == .user { Spacer() }
+        HStack(alignment: .bottom, spacing: 0) {
+            if message.role == .user {
+                Spacer(minLength: 32)
+            }
 
-            VStack(alignment: message.role == .user ? .trailing : .leading) {
-                // Show document preview if attached
+            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
                 if let attachment = message.documentAttachment {
                     DocumentAttachmentView(attachment: attachment)
                         .padding(.bottom, 4)
                 }
 
-                // Only show content if it has actual text (not just document marker)
                 if message.role == .assistant || hasContentToShow(message.content) {
-                    Text(getDisplayContent(message.content))
+                    if shouldUseNativeText(getDisplayContent(message.content)) {
+                        Text(getDisplayContent(message.content))
+                            .font(.system(size: 17))
+                            .lineSpacing(4)
+                            .textSelection(.enabled)
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(12)
+                            .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
+                            .cornerRadius(10)
+                            .frame(maxWidth: bubbleMaxWidth, alignment: message.role == .user ? .trailing : .leading)
+                            .contextMenu {
+                                Button(action: copyMessage) {
+                                    Label("Copy", systemImage: "doc.on.doc")
+                                }
+                            }
+                    } else {
+                        MarkdownWebView(
+                            markdown: getDisplayContent(message.content),
+                            isDarkMode: colorScheme == .dark,
+                            calculatedHeight: $messageHeight
+                        )
+                        .frame(maxWidth: bubbleMaxWidth, alignment: .leading)
+                        .frame(height: max(messageHeight, 20))
                         .padding(12)
                         .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
                         .cornerRadius(10)
+                        .frame(maxWidth: bubbleMaxWidth, alignment: message.role == .user ? .trailing : .leading)
                         .contextMenu {
                             Button(action: copyMessage) {
                                 Label("Copy", systemImage: "doc.on.doc")
                             }
                         }
+                    }
                 }
 
                 Text(formatDate(message.timestamp))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            .frame(maxWidth: bubbleMaxWidth, alignment: message.role == .user ? .trailing : .leading)
 
-            if message.role == .assistant { Spacer() }
+            if message.role == .assistant {
+                Spacer(minLength: 32)
+            }
         }
         .padding(.horizontal)
+    }
+
+    private func shouldUseNativeText(_ content: String) -> Bool {
+        let text = content.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if text.isEmpty { return true }
+
+        let richMarkdownPatterns = [
+            "```",          // code fences
+            "|---",         // tables
+            "\n|",          // tables
+            "$$",           // block math
+            "\\[",          // latex block
+            "\\(",          // latex inline
+            "# ",           // headings
+            "## ",
+            "### ",
+            "- ",           // lists
+            "* ",
+            "1. ",
+            "> ",           // blockquote
+            "---",          // horizontal rule
+            "`"             // inline code
+        ]
+
+        return !richMarkdownPatterns.contains { text.contains($0) }
     }
 
     private func copyMessage() {
@@ -287,19 +344,14 @@ struct MessageView: View {
     }
 
     private func hasContentToShow(_ content: String) -> Bool {
-        // Remove the document marker to check if there's actual content
         let markerStart = "--- Attached Document:"
 
-        // If no marker, check if content is not empty
         guard content.contains(markerStart) else {
             return !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
 
-        // Has marker - extract text before the marker
         if let markerRange = content.range(of: markerStart) {
-            // Use ..< to exclude the marker start from the text
             let textBeforeMarker = String(content[..<markerRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-            // Show content only if there's actual text before the marker
             return !textBeforeMarker.isEmpty
         }
 
@@ -307,14 +359,11 @@ struct MessageView: View {
     }
 
     private func getDisplayContent(_ content: String) -> String {
-        // If no document attachment, return as-is
         guard content.contains("--- Attached Document:") else {
             return content
         }
 
-        // Extract text before the document marker
         if let markerRange = content.range(of: "--- Attached Document:") {
-            // Get everything before the marker (use ..< to exclude the marker start)
             let textBeforeMarker = String(content[..<markerRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
             return textBeforeMarker
         }
@@ -368,4 +417,3 @@ struct DocumentPreviewView: View {
         .padding()
     }
 }
-

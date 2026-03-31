@@ -11,6 +11,7 @@
 		E01D2D122F79C8D90099482A /* (null) in Frameworks */ = {isa = PBXBuildFile; settings = {ATTRIBUTES = (Weak, ); }; };
 		E04C4B422F7AF2E40008268E /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = E04C4B412F7AF2E40008268E /* MarkdownUI */; };
 		E09F775C2F7B1E5F00D5A8FB /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = E02D2D102F79C8D90099482A /* SwiftMath */; };
+		E09F78302F7C25FE00D5A8FB /* MathJax-4.1.1 in Resources */ = {isa = PBXBuildFile; fileRef = E09F782F2F7C25FE00D5A8FB /* MathJax-4.1.1 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,6 +35,7 @@
 		E01D2C892F7318220099482A /* open_chat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = open_chat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E01D2C992F7318230099482A /* open_chatTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = open_chatTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E01D2CA32F7318230099482A /* open_chatUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = open_chatUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E09F782F2F7C25FE00D5A8FB /* MathJax-4.1.1 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "MathJax-4.1.1"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -86,6 +88,7 @@
 		E01D2C802F7318220099482A = {
 			isa = PBXGroup;
 			children = (
+				E09F782F2F7C25FE00D5A8FB /* MathJax-4.1.1 */,
 				E01D2C8B2F7318220099482A /* open_chat */,
 				E01D2C9C2F7318230099482A /* open_chatTests */,
 				E01D2CA62F7318230099482A /* open_chatUITests */,
@@ -230,6 +233,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E09F78302F7C25FE00D5A8FB /* MathJax-4.1.1 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
