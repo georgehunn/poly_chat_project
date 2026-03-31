@@ -2,7 +2,17 @@
   "use strict";
 
   const root = document.getElementById("markdown-root");
-  const markdown = window.__MARKDOWN_CONTENT__ || "";
+const rawMarkdown = window.__MARKDOWN_CONTENT__ || "";
+
+function normalizeMathDelimiters(text) {
+  return text
+    .replace(/\\\[(.*?)\\\]/gs, (_, expr) => `$$${expr}$$`)
+    .replace(/\\\((.*?)\\\)/gs, (_, expr) => `$${expr}$`);
+}
+
+const markdown = normalizeMathDelimiters(rawMarkdown)
+  .replace(/\$\\s+/g, '$')
+  .replace(/\\s+\$/g, '$');
 
   function reportHeight() {
     if (!window.webkit?.messageHandlers?.heightChange) return;
