@@ -48,8 +48,16 @@ struct ChatView: View {
                         if isLoading {
                             HStack {
                                 Spacer()
-                                ProgressView()
-                                    .padding()
+                                HStack(spacing: 8) {
+                                    ProgressView()
+                                    Text("Thinking...")
+                                        .font(.system(.body, design: .rounded))
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding()
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(20)
                                 Spacer()
                             }
                         }
