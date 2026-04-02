@@ -249,7 +249,7 @@ class OllamaService {
         }
     }
 
-    func generateChatResponse(messages: [Message], model: String) async throws -> String {
+    func generateChatResponse(messages: [Message], model: String, tools: [[String: Any]] = []) async throws -> ChatServiceResponse {
         let urlString = "\(baseURL)/chat"
         print("Attempting to connect to: \(urlString)")
         print("BaseURL: \(baseURL)")
@@ -259,19 +259,44 @@ class OllamaService {
             throw URLError(.badURL)
         }
 
-        // Convert messages to the format expected by Ollama chat API
-        let ollamaMessages = messages.map { message -> [String: String] in
-            return [
-                "role": message.role.rawValue,
-                "content": message.content
-            ]
+        // Convert messages to Ollama format, handling tool roles and tool_calls fields
+        let ollamaMessages: [[String: Any]] = messages.map { message in
+            switch message.role {
+            case .system, .user:
+                return ["role": message.role.rawValue, "content": message.content]
+            case .assistant:
+                if let toolCalls = message.toolCalls, !toolCalls.isEmpty {
+                    let ollaCalls = toolCalls.map { call -> [String: Any] in
+                        // Ollama expects arguments as an object, not a JSON string
+                        let argsObj = (try? JSONSerialization.jsonObject(with: Data(call.arguments.utf8))) ?? [:]
+                        var callDict: [String: Any] = [
+                            "id": call.id,
+                            "function": ["name": call.name, "arguments": argsObj]
+                        ]
+                        // Thinking models (Qwen3, DeepSeek-R1, etc.) require thought_signature echoed back
+                        if let sig = call.thoughtSignature {
+                            callDict["thought_signature"] = sig
+                        }
+                        return callDict
+                    }
+                    return ["role": "assistant", "content": message.content, "tool_calls": ollaCalls]
+                }
+                return ["role": "assistant", "content": message.content]
+            case .tool:
+                return ["role": "tool", "content": message.content]
+            }
         }
 
-        let requestBody: [String: Any] = [
+        var requestBody: [String: Any] = [
             "model": model,
             "messages": ollamaMessages,
             "stream": false
         ]
+        if !tools.isEmpty {
+            requestBody["tools"] = tools
+            print("[OllamaService] Sending \(tools.count) tool(s) in request")
+        }
+        print("[OllamaService] Request: model=\(model), messages=\(ollamaMessages.count)")
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -310,10 +335,8 @@ class OllamaService {
                     }
                     print("HTTP Error \(httpResponse.statusCode) \(statusString)\(errorBody)")
 
-                    // Create a more descriptive error with the status code and response
                     let errorMessage = "Server error \(httpResponse.statusCode) \(statusString)\(errorBody)"
 
-                    // Determine error domain and code based on status
                     let errorDomain: String
                     let errorCode: Int
 
@@ -328,56 +351,61 @@ class OllamaService {
                         errorCode = Int(httpResponse.statusCode)
                     }
 
-                    let nsError = NSError(domain: errorDomain, code: errorCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])
-                    throw nsError
+                    throw NSError(domain: errorDomain, code: errorCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])
                 }
             }
 
-            // Print response data for debugging
             if let responseString = String(data: data, encoding: .utf8) {
                 print("Response data: \(responseString)")
             }
 
-            // Try to parse as JSON to see what we're actually getting
-            do {
-                let jsonResponse = try JSONSerialization.jsonObject(with: data, options: [])
-                print("Parsed JSON response: \(jsonResponse)")
-            } catch {
-                print("Failed to parse response as JSON: \(error)")
+            // Check for tool_calls via raw JSON before attempting Codable decode
+            if let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let messageDict = jsonObject["message"] as? [String: Any],
+               let toolCallsData = messageDict["tool_calls"] as? [[String: Any]],
+               !toolCallsData.isEmpty {
+
+                print("[OllamaService] Response contains \(toolCallsData.count) tool call(s) — parsing...")
+                var toolCalls: [ToolCall] = []
+                for callData in toolCallsData {
+                    if let function_ = callData["function"] as? [String: Any],
+                       let name = function_["name"] as? String {
+                        let argsObj = function_["arguments"] ?? [:]
+                        let argsString: String
+                        if let argsData = try? JSONSerialization.data(withJSONObject: argsObj),
+                           let str = String(data: argsData, encoding: .utf8) {
+                            argsString = str
+                        } else {
+                            argsString = "{}"
+                        }
+                        let callId = callData["id"] as? String ?? UUID().uuidString
+                        let thoughtSignature = callData["thought_signature"] as? String
+                        print("[OllamaService] Tool call: id=\(callId) \(name)(\(argsString))\(thoughtSignature != nil ? " [has thought_signature]" : " [no thought_signature]")")
+                        toolCalls.append(ToolCall(id: callId, name: name, arguments: argsString, thoughtSignature: thoughtSignature))
+                    }
+                }
+                if !toolCalls.isEmpty {
+                    return .toolCalls(toolCalls)
+                }
             }
 
-            // Try to decode as our expected format first
+            // Try Codable decode for regular text responses
             do {
                 let ollamaResponse = try JSONDecoder().decode(OllamaChatResponse.self, from: data)
                 print("Successfully received response: \(ollamaResponse.message.content)")
-                return ollamaResponse.message.content
+                return .text(ollamaResponse.message.content)
             } catch {
                 print("Failed to decode as OllamaChatResponse: \(error)")
-                // Try to decode as a generic JSON to see what we're getting
-                do {
-                    if let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                        print("Raw response object: \(jsonObject)")
-
-                        // Try to extract content even if model field is missing
-                        if let message = jsonObject["message"] as? [String: Any],
-                           let content = message["content"] as? String {
-                            print("Extracted content directly: \(content)")
-                            return content
-                        }
-
-                        // If we can't get content, throw the original error
-                        throw error
-                    }
-                } catch {
-                    print("Failed to parse response as generic JSON: \(error)")
+                if let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let messageDict = jsonObject["message"] as? [String: Any],
+                   let content = messageDict["content"] as? String {
+                    print("Extracted content directly: \(content)")
+                    return .text(content)
                 }
-
-                // Re-throw the original decoding error
                 throw error
             }
         } catch let decodingError as DecodingError {
             print("Decoding error in generateChatResponse: \(decodingError)")
-            // Print more details about the decoding error
             switch decodingError {
             case .keyNotFound(let key, let context):
                 print("Key '\(key)' not found. Coding path: \(context.codingPath)")
@@ -506,6 +534,12 @@ class OllamaService {
             throw error
         }
     }
+}
+
+/// Unified response type for chat APIs — either plain text or a list of tool calls to execute.
+enum ChatServiceResponse {
+    case text(String)
+    case toolCalls([ToolCall])
 }
 
 struct OllamaChatResponse: Codable {

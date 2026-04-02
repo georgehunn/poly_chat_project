@@ -38,7 +38,7 @@ struct ModelSelectionView: View {
                                 selectModel(model)
                             }) {
                                 HStack {
-                                    VStack(alignment: .leading) {
+                                    VStack(alignment: .leading, spacing: 4) {
                                         Text(model.displayName)
                                             .font(.headline)
                                         Text(model.provider)
@@ -47,7 +47,17 @@ struct ModelSelectionView: View {
                                     }
 
                                     Spacer()
+
+                                    HStack(spacing: 4) {
+                                        if model.hasVision == true {
+                                            CapabilityBadge(icon: "eye.fill", label: "Vision", color: .purple)
+                                        }
+                                        if model.hasTools == true {
+                                            CapabilityBadge(icon: "wrench.and.screwdriver.fill", label: "Tools", color: .orange)
+                                        }
+                                    }
                                 }
+                                .foregroundColor(.primary)
                             }
                         }
                     }

@@ -30,4 +30,18 @@ class SecureStorageService {
     func deleteEndpoint() -> Bool {
         return KeychainService.shared.delete(service: serviceName, account: "endpoint")
     }
+
+    func saveBraveAPIKey(_ key: String) -> Bool {
+        guard let data = key.data(using: .utf8) else { return false }
+        return KeychainService.shared.save(service: serviceName, account: "braveAPIKey", data: data)
+    }
+
+    func getBraveAPIKey() -> String? {
+        guard let data = KeychainService.shared.load(service: serviceName, account: "braveAPIKey") else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    func deleteBraveAPIKey() -> Bool {
+        return KeychainService.shared.delete(service: serviceName, account: "braveAPIKey")
+    }
 }

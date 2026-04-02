@@ -24,25 +24,37 @@ extension Conversation {
     }
 }
 
+struct ToolCall: Identifiable, Codable {
+    let id: String              // "call_abc" (OpenAI) or UUID string (Ollama, which omits ids)
+    let name: String            // function name, e.g. "web_search"
+    let arguments: String       // JSON-encoded string, e.g. "{\"query\":\"...\"}"
+    var thoughtSignature: String? // Grok/extended-thinking providers require this echoed back
+}
+
 struct Message: Identifiable, Codable {
     let id: UUID
     let role: Role
     var content: String
     let timestamp: Date
     let documentAttachment: DocumentAttachment?
+    var toolCalls: [ToolCall]?   // present on assistant messages that invoke tools
+    var toolCallId: String?       // present on tool-result messages (OpenAI requires correlation)
 
     enum Role: String, Codable {
         case system
         case user
         case assistant
+        case tool
     }
 
-    init(id: UUID = UUID(), role: Role, content: String, timestamp: Date = Date(), documentAttachment: DocumentAttachment? = nil) {
+    init(id: UUID = UUID(), role: Role, content: String, timestamp: Date = Date(), documentAttachment: DocumentAttachment? = nil, toolCalls: [ToolCall]? = nil, toolCallId: String? = nil) {
         self.id = id
         self.role = role
         self.content = content
         self.timestamp = timestamp
         self.documentAttachment = documentAttachment
+        self.toolCalls = toolCalls
+        self.toolCallId = toolCallId
     }
 }
 

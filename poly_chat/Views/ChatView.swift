@@ -55,8 +55,13 @@ struct ChatView: View {
                             HStack {
                                 Spacer()
                                 HStack(spacing: 8) {
-                                    ProgressView()
-                                    Text("Thinking...")
+                                    if let toolName = chatManager.activeToolName {
+                                        Image(systemName: toolIcon(for: toolName))
+                                            .foregroundColor(.blue)
+                                    } else {
+                                        ProgressView()
+                                    }
+                                    Text(loadingLabel)
                                         .font(.system(.body, design: .rounded))
                                         .fontWeight(.medium)
                                         .foregroundColor(.secondary)
@@ -66,6 +71,7 @@ struct ChatView: View {
                                 .cornerRadius(20)
                                 Spacer()
                             }
+                            .animation(.easeInOut(duration: 0.2), value: chatManager.activeToolName)
                         }
                     }
                 }
@@ -195,6 +201,23 @@ struct ChatView: View {
                 onDocumentSelected: handleDocumentSelected,
                 fileTypes: [.pdf]
             )
+        }
+    }
+
+    private var loadingLabel: String {
+        switch chatManager.activeToolName {
+        case "get_current_date": return "Checking the date…"
+        case "web_search": return "Searching the web…"
+        case let name? where !name.isEmpty: return "Using \(name)…"
+        default: return "Thinking…"
+        }
+    }
+
+    private func toolIcon(for name: String) -> String {
+        switch name {
+        case "get_current_date": return "calendar"
+        case "web_search": return "globe"
+        default: return "wrench.and.screwdriver"
         }
     }
 

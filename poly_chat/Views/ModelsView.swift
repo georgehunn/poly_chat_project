@@ -141,28 +141,44 @@ struct ModelRowView: View {
 
             Spacer()
 
-            // Show capability badges
-            VStack(alignment: .trailing, spacing: 4) {
+            // Capability badges + context length
+            VStack(alignment: .trailing, spacing: 6) {
                 HStack(spacing: 4) {
                     if model.hasVision == true {
-                        Text("👁️")
-                            .font(.caption)
+                        CapabilityBadge(icon: "eye.fill", label: "Vision", color: .purple)
                     }
                     if model.hasTools == true {
-                        Text("🛠️")
-                            .font(.caption)
+                        CapabilityBadge(icon: "wrench.and.screwdriver.fill", label: "Tools", color: .orange)
                     }
                 }
-
-                // Context length indicator
                 if let contextLength = model.contextLength {
-                    Text("\(contextLength) tokens")
+                    Text("\(contextLength / 1000)k ctx")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+struct CapabilityBadge: View {
+    let icon: String
+    let label: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .semibold))
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+        }
+        .foregroundColor(color)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(color.opacity(0.12))
+        .clipShape(Capsule())
     }
 }
 

@@ -7,6 +7,7 @@ class ChatManager: ObservableObject {
     @Published var conversations: [Conversation] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var activeToolName: String?
 
     private let storageService = LocalStorageService()
 
@@ -145,52 +146,179 @@ class ChatManager: ObservableObject {
         return try await sendRegularMessage(conversation: updatedConversation, atIndex: index)
     }
 
-    private func sendRegularMessage(conversation: Conversation, atIndex index: Int) async throws -> String {
-        do {
-            let response = try await OllamaService.shared.generateChatResponse(
-                messages: conversation.messages,
-                model: conversation.model.name
-            )
+    // MARK: - Web Search Tool Definition
 
-            // Add assistant response to conversation
-            let assistantMessage = Message(
-                id: UUID(),
-                role: .assistant,
-                content: response,
-                timestamp: Date()
+    static let currentDateTool: [String: Any] = [
+        "type": "function",
+        "function": [
+            "name": "get_current_date",
+            "description": "Returns the current date, time, and timezone. Always call this before answering any question that depends on today's date, the current time, recent events, or the weather.",
+            "parameters": [
+                "type": "object",
+                "properties": [:] as [String: Any],
+                "required": [] as [String]
+            ]
+        ]
+    ]
+
+    static let webSearchTool: [String: Any] = [
+        "type": "function",
+        "function": [
+            "name": "web_search",
+            "description": "Search the web for current news, facts, or any information that may have changed since your training. Use this when the user asks about recent events, live data, or anything time-sensitive.",
+            "parameters": [
+                "type": "object",
+                "properties": [
+                    "query": [
+                        "type": "string",
+                        "description": "A concise search query"
+                    ]
+                ],
+                "required": ["query"]
+            ]
+        ]
+    ]
+
+    private func extractSearchQuery(from arguments: String) -> String? {
+        guard let data = arguments.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let query = json["query"] as? String else { return nil }
+        return query
+    }
+
+    private func sendRegularMessage(conversation: Conversation, atIndex index: Int) async throws -> String {
+        var tools: [[String: Any]] = [ChatManager.currentDateTool]
+        if WebSearchService.shared.apiKey != nil { tools.append(ChatManager.webSearchTool) }
+        var workingMessages = conversation.messages
+        let maxToolIterations = 5
+
+        let webSearchEnabled = !tools.isEmpty
+        print("[ToolLoop] ── START ──────────────────────────────────")
+        print("[ToolLoop] Model: \(conversation.model.name)")
+        print("[ToolLoop] Web search: \(webSearchEnabled ? "ENABLED (Tavily key found)" : "DISABLED (no Tavily key)")")
+        print("[ToolLoop] Messages in context: \(workingMessages.count)")
+
+        do {
+            for iteration in 0..<maxToolIterations {
+                print("[ToolLoop] Iteration \(iteration + 1)/\(maxToolIterations) — sending \(workingMessages.count) message(s)")
+
+                let chatResponse: ChatServiceResponse
+
+                if let provider = ProviderManager.shared.getActiveProvider(),
+                   provider.providerType == .openAI || provider.providerType == .grok {
+                    print("[ToolLoop] Routing to OpenAI adapter (provider: \(provider.name))")
+                    let adapter = OpenAIBackendAdapter(providerConfig: provider)
+                    chatResponse = try await adapter.generateChatResponseWithTools(
+                        messages: workingMessages,
+                        model: conversation.model.name,
+                        tools: tools
+                    )
+                } else {
+                    print("[ToolLoop] Routing to OllamaService")
+                    chatResponse = try await OllamaService.shared.generateChatResponse(
+                        messages: workingMessages,
+                        model: conversation.model.name,
+                        tools: tools
+                    )
+                }
+
+                switch chatResponse {
+                case .text(let content):
+                    print("[ToolLoop] Got TEXT response (\(content.count) chars) — done")
+                    print("[ToolLoop] ── END ────────────────────────────────────")
+                    let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date())
+                    var updatedConversation = conversations[index]
+                    updatedConversation.messages.append(assistantMessage)
+                    updatedConversation.updatedAt = Date()
+                    conversations[index] = updatedConversation
+                    storageService.saveConversations(conversations)
+
+                    if needsTitleUpdate(conversation: updatedConversation) {
+                        Task { [weak self] in
+                            await self?.updateTitleForConversation(updatedConversation)
+                        }
+                    }
+                    return content
+
+                case .toolCalls(let toolCalls):
+                    print("[ToolLoop] Got TOOL CALLS: \(toolCalls.map { "\($0.name)(id:\($0.id.prefix(8)))" }.joined(separator: ", "))")
+                    let assistantToolMsg = Message(id: UUID(), role: .assistant, content: "", timestamp: Date(), toolCalls: toolCalls)
+                    workingMessages.append(assistantToolMsg)
+
+                    for call in toolCalls {
+                        activeToolName = call.name
+                        let result: String
+                        if call.name == "get_current_date" {
+                            let formatter = DateFormatter()
+                            formatter.dateStyle = .full
+                            formatter.timeStyle = .long
+                            formatter.locale = Locale.current
+                            formatter.timeZone = TimeZone.current
+                            result = "Current date and time: \(formatter.string(from: Date())) (\(TimeZone.current.identifier))"
+                            print("[ToolLoop] get_current_date → \(result)")
+                        } else if call.name == "web_search" {
+                            let query = extractSearchQuery(from: call.arguments) ?? call.arguments
+                            print("[ToolLoop] Dispatching web_search, query: \"\(query)\"")
+                            do {
+                                result = try await WebSearchService.shared.search(query: query)
+                                print("[ToolLoop] Search result: \(result.count) chars")
+                            } catch {
+                                print("[ToolLoop] Search FAILED: \(error)")
+                                result = "Web search failed: \(error.localizedDescription)"
+                            }
+                        } else {
+                            print("[ToolLoop] Unknown tool requested: \(call.name)")
+                            result = "Unknown tool: \(call.name)"
+                        }
+                        activeToolName = nil
+                        let toolResultMsg = Message(id: UUID(), role: .tool, content: result, timestamp: Date(), toolCallId: call.id)
+                        workingMessages.append(toolResultMsg)
+                    }
+                }
+            }
+
+            print("[ToolLoop] ERROR — exceeded max \(maxToolIterations) iterations")
+            throw NSError(domain: "ChatError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Exceeded maximum tool-call iterations."])
+
+        } catch let nsError as NSError where nsError.localizedDescription.contains("thought_signature") {
+            activeToolName = nil
+            // Some models (e.g. Gemini via Ollama) require thought_signature in tool calls but don't
+            // return it in responses — Ollama strips it. Retry the original messages without tools.
+            print("[ToolLoop] thought_signature incompatibility — retrying without tools")
+            let fallback = try await OllamaService.shared.generateChatResponse(
+                messages: conversation.messages,
+                model: conversation.model.name,
+                tools: []
             )
-            var updatedConversation = conversation
+            guard case .text(let content) = fallback else {
+                throw NSError(domain: "ChatError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unexpected tool call in fallback."])
+            }
+            print("[ToolLoop] Fallback succeeded (\(content.count) chars)")
+            print("[ToolLoop] ── END (fallback) ─────────────────────")
+            let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date())
+            var updatedConversation = conversations[index]
             updatedConversation.messages.append(assistantMessage)
             updatedConversation.updatedAt = Date()
             conversations[index] = updatedConversation
             storageService.saveConversations(conversations)
-
-            // After first user + assistant exchange, generate a better title
             if needsTitleUpdate(conversation: updatedConversation) {
-                Task { [weak self] in
-                    await self?.updateTitleForConversation(updatedConversation)
-                }
+                Task { [weak self] in await self?.updateTitleForConversation(updatedConversation) }
             }
+            return content
 
-            return response
         } catch {
-            // Add error message to conversation
+            activeToolName = nil
+            print("[ToolLoop] CAUGHT ERROR: \(error)")
+            print("[ToolLoop] ── END (error) ──────────────────────────")
             let errorContent = "Error: \(error.localizedDescription)"
-            let errorMessage = Message(
-                id: UUID(),
-                role: .assistant,
-                content: errorContent,
-                timestamp: Date()
-            )
-            var updatedConversation = conversation
+            let errorMessage = Message(id: UUID(), role: .assistant, content: errorContent, timestamp: Date())
+            var updatedConversation = conversations[index]
             updatedConversation.messages.append(errorMessage)
             updatedConversation.updatedAt = Date()
             conversations[index] = updatedConversation
             storageService.saveConversations(conversations)
 
-            // Set error message for UI
             self.errorMessage = error.localizedDescription
-
             throw error
         }
     }

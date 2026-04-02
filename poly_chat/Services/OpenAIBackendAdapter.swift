@@ -17,42 +17,69 @@ class OpenAIBackendAdapter: BackendAdapter {
     ///   - model: The model to use for generation
     /// - Returns: The response message from the API
     func sendMessage(messages: [Message], model: String) async throws -> Message {
-        let response = try await generateChatResponse(messages: messages, model: model)
-
-        return Message(
-            role: .assistant,
-            content: response
-        )
+        let chatResponse = try await generateChatResponseWithTools(messages: messages, model: model, tools: [])
+        switch chatResponse {
+        case .text(let content):
+            return Message(role: .assistant, content: content)
+        case .toolCalls:
+            return Message(role: .assistant, content: "")
+        }
     }
 
-    private func generateChatResponse(messages: [Message], model: String) async throws -> String {
+    func generateChatResponseWithTools(messages: [Message], model: String, tools: [[String: Any]]) async throws -> ChatServiceResponse {
         let urlString = "\(providerConfig.endpoint)/chat/completions"
 
         guard let url = URL(string: urlString) else {
             throw URLError(.badURL)
         }
 
-        // Convert messages to the format expected by OpenAI API
-        let openAIMessages = messages.map { message -> [String: String] in
-            return [
-                "role": message.role.rawValue,
-                "content": message.content
-            ]
+        // Convert messages to OpenAI format, handling tool roles and tool_calls fields
+        let openAIMessages: [[String: Any]] = messages.map { message in
+            switch message.role {
+            case .system, .user:
+                return ["role": message.role.rawValue, "content": message.content]
+            case .assistant:
+                if let toolCalls = message.toolCalls, !toolCalls.isEmpty {
+                    let oaiCalls = toolCalls.map { call -> [String: Any] in
+                        var callDict: [String: Any] = [
+                            "id": call.id,
+                            "type": "function",
+                            "function": ["name": call.name, "arguments": call.arguments]
+                        ]
+                        // Grok and other extended-thinking providers require thought_signature echoed back
+                        if let sig = call.thoughtSignature {
+                            callDict["thought_signature"] = sig
+                        }
+                        return callDict
+                    }
+                    return ["role": "assistant", "content": NSNull(), "tool_calls": oaiCalls]
+                }
+                return ["role": "assistant", "content": message.content]
+            case .tool:
+                var dict: [String: Any] = ["role": "tool", "content": message.content]
+                if let toolCallId = message.toolCallId {
+                    dict["tool_call_id"] = toolCallId
+                }
+                return dict
+            }
         }
 
-        let requestBody: [String: Any] = [
+        var requestBody: [String: Any] = [
             "model": model,
             "messages": openAIMessages,
             "stream": false
         ]
+        if !tools.isEmpty {
+            requestBody["tools"] = tools
+            print("[OpenAIAdapter] Sending \(tools.count) tool(s) in request")
+        }
+        print("[OpenAIAdapter] Request: model=\(model), messages=\(openAIMessages.count), endpoint=\(providerConfig.endpoint)")
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // Add API key if available
         if !providerConfig.apiKey.isEmpty {
-            // Grok and OpenAI both use Bearer token
             request.setValue("Bearer \(providerConfig.apiKey)", forHTTPHeaderField: "Authorization")
         }
 
@@ -66,32 +93,51 @@ class OpenAIBackendAdapter: BackendAdapter {
             let (data, response) = try await URLSession.shared.data(for: request)
 
             if let httpResponse = response as? HTTPURLResponse {
+                print("[OpenAIAdapter] HTTP \(httpResponse.statusCode)")
                 if httpResponse.statusCode >= 400 {
                     let statusString = HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)
                     var errorBody = ""
                     if let responseString = String(data: data, encoding: .utf8) {
                         errorBody = ": \(responseString)"
+                        print("[OpenAIAdapter] ERROR body: \(responseString)")
                     }
-                    let errorMessage = "Server error \(httpResponse.statusCode) \(statusString)\(errorBody)"
-                    throw NSError(domain: "APIError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                    throw NSError(domain: "APIError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server error \(httpResponse.statusCode) \(statusString)\(errorBody)"])
                 }
             }
 
-            // Try to decode OpenAI-compatible response
-            do {
-                let openAIResponse = try JSONDecoder().decode(OpenAIChatResponse.self, from: data)
-                return openAIResponse.choices[0].message.content
-            } catch {
-                // Try to extract content from generic JSON
-                if let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let choices = jsonObject["choices"] as? [[String: Any]],
-                   let firstChoice = choices.first,
-                   let message = firstChoice["message"] as? [String: Any],
-                   let content = message["content"] as? String {
-                    return content
+            // Check for tool_calls via raw JSON first — OpenAI sets content=null on tool call responses,
+            // which would crash the Codable struct.
+            if let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let choices = jsonObject["choices"] as? [[String: Any]],
+               let firstChoice = choices.first,
+               let messageDict = firstChoice["message"] as? [String: Any] {
+
+                if let toolCallsData = messageDict["tool_calls"] as? [[String: Any]], !toolCallsData.isEmpty {
+                    print("[OpenAIAdapter] Response contains \(toolCallsData.count) tool call(s) — parsing...")
+                    var toolCalls: [ToolCall] = []
+                    for callData in toolCallsData {
+                        let callId = callData["id"] as? String ?? UUID().uuidString
+                        let thoughtSignature = callData["thought_signature"] as? String
+                        if let function_ = callData["function"] as? [String: Any],
+                           let name = function_["name"] as? String,
+                           let arguments = function_["arguments"] as? String {
+                            print("[OpenAIAdapter] Tool call: \(name)(\(arguments))\(thoughtSignature != nil ? " [has thought_signature]" : "")")
+                            toolCalls.append(ToolCall(id: callId, name: name, arguments: arguments, thoughtSignature: thoughtSignature))
+                        }
+                    }
+                    if !toolCalls.isEmpty {
+                        return .toolCalls(toolCalls)
+                    }
                 }
-                throw error
+
+                if let content = messageDict["content"] as? String {
+                    return .text(content)
+                }
             }
+
+            // Fallback: Codable decode
+            let openAIResponse = try JSONDecoder().decode(OpenAIChatResponse.self, from: data)
+            return .text(openAIResponse.choices[0].message.content)
         } catch let urlError as URLError {
             throw urlError
         } catch {
