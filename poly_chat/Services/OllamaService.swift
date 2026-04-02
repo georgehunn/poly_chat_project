@@ -262,8 +262,14 @@ class OllamaService {
         // Convert messages to Ollama format, handling tool roles and tool_calls fields
         let ollamaMessages: [[String: Any]] = messages.map { message in
             switch message.role {
-            case .system, .user:
+            case .system:
                 return ["role": message.role.rawValue, "content": message.content]
+            case .user:
+                if let img = message.imageAttachment {
+                    // Ollama vision: pass base64 image(s) alongside the text content
+                    return ["role": "user", "content": message.content, "images": [img.base64Data]]
+                }
+                return ["role": "user", "content": message.content]
             case .assistant:
                 if let toolCalls = message.toolCalls, !toolCalls.isEmpty {
                     let ollaCalls = toolCalls.map { call -> [String: Any] in

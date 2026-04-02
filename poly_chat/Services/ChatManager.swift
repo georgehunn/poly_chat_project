@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import UniformTypeIdentifiers
 import PDFKit
+import UIKit
 
 class ChatManager: ObservableObject {
     @Published var conversations: [Conversation] = []
@@ -108,7 +109,26 @@ class ChatManager: ObservableObject {
         }
     }
 
-    func sendMessage(_ message: String, in conversation: Conversation, with documentAttachment: DocumentAttachment? = nil) async throws -> String {
+    /// Send a message with an image attachment (for vision-capable models)
+    func sendMessage(_ message: String, in conversation: Conversation, withImage image: UIImage) async throws -> String {
+        // Compress to JPEG at ≤800px, 80% quality to keep storage reasonable
+        let maxDimension: CGFloat = 800
+        let scale = min(maxDimension / image.size.width, maxDimension / image.size.height, 1.0)
+        let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let resized = renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: targetSize)) }
+
+        guard let jpegData = resized.jpegData(compressionQuality: 0.8) else {
+            throw ChatError.imageProcessingFailed(NSError(domain: "ChatError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to compress image"]))
+        }
+
+        let base64 = jpegData.base64EncodedString()
+        let imageAttachment = ImageAttachment(base64Data: base64, mimeType: "image/jpeg")
+        return try await sendMessage(message, in: conversation, imageAttachment: imageAttachment)
+    }
+
+    func sendMessage(_ message: String, in conversation: Conversation, with documentAttachment: DocumentAttachment? = nil, imageAttachment: ImageAttachment? = nil) async throws -> String {
         // Clear any previous error message
         errorMessage = nil
 
@@ -131,7 +151,8 @@ class ChatManager: ObservableObject {
             role: .user,
             content: finalContent,
             timestamp: Date(),
-            documentAttachment: documentAttachment
+            documentAttachment: documentAttachment,
+            imageAttachment: imageAttachment
         )
         updatedConversation.messages.append(userMessage)
 
@@ -189,14 +210,25 @@ class ChatManager: ObservableObject {
     }
 
     private func sendRegularMessage(conversation: Conversation, atIndex index: Int) async throws -> String {
-        var tools: [[String: Any]] = [ChatManager.currentDateTool]
-        if WebSearchService.shared.apiKey != nil { tools.append(ChatManager.webSearchTool) }
+        // Don't send tools when the latest user message has an image — vision queries are
+        // descriptive and sending tool prompts causes some thinking models (e.g. Qwen3-VL)
+        // to output meta-commentary about tool decisions instead of answering the question.
+        let latestUserMessage = conversation.messages.last(where: { $0.role == .user })
+        let hasImageAttachment = latestUserMessage?.imageAttachment != nil
+
+        var tools: [[String: Any]] = []
+        if !hasImageAttachment {
+            tools.append(ChatManager.currentDateTool)
+            if WebSearchService.shared.apiKey != nil { tools.append(ChatManager.webSearchTool) }
+        }
+
         var workingMessages = conversation.messages
         let maxToolIterations = 5
 
-        let webSearchEnabled = !tools.isEmpty
+        let webSearchEnabled = tools.contains(where: { ($0["function"] as? [String: Any])?["name"] as? String == "web_search" })
         print("[ToolLoop] ── START ──────────────────────────────────")
         print("[ToolLoop] Model: \(conversation.model.name)")
+        print("[ToolLoop] Image message: \(hasImageAttachment ? "YES — tools suppressed" : "no")")
         print("[ToolLoop] Web search: \(webSearchEnabled ? "ENABLED (Tavily key found)" : "DISABLED (no Tavily key)")")
         print("[ToolLoop] Messages in context: \(workingMessages.count)")
 
@@ -411,6 +443,7 @@ class ChatManager: ObservableObject {
 enum ChatError: Error {
     case conversationNotFound
     case pdfProcessingFailed(Error)
+    case imageProcessingFailed(Error)
     case documentTooLarge
     case noTextInDocument
     case invalidPDF

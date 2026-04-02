@@ -37,6 +37,7 @@ struct Message: Identifiable, Codable {
     var content: String
     let timestamp: Date
     let documentAttachment: DocumentAttachment?
+    let imageAttachment: ImageAttachment?
     var toolCalls: [ToolCall]?   // present on assistant messages that invoke tools
     var toolCallId: String?       // present on tool-result messages (OpenAI requires correlation)
 
@@ -47,14 +48,29 @@ struct Message: Identifiable, Codable {
         case tool
     }
 
-    init(id: UUID = UUID(), role: Role, content: String, timestamp: Date = Date(), documentAttachment: DocumentAttachment? = nil, toolCalls: [ToolCall]? = nil, toolCallId: String? = nil) {
+    init(id: UUID = UUID(), role: Role, content: String, timestamp: Date = Date(), documentAttachment: DocumentAttachment? = nil, imageAttachment: ImageAttachment? = nil, toolCalls: [ToolCall]? = nil, toolCallId: String? = nil) {
         self.id = id
         self.role = role
         self.content = content
         self.timestamp = timestamp
         self.documentAttachment = documentAttachment
+        self.imageAttachment = imageAttachment
         self.toolCalls = toolCalls
         self.toolCallId = toolCallId
+    }
+}
+
+public struct ImageAttachment: Codable, Identifiable {
+    public let id: UUID
+    public let base64Data: String   // compressed JPEG, base64-encoded
+    public let mimeType: String     // "image/jpeg"
+    public let createdAt: Date
+
+    public init(base64Data: String, mimeType: String = "image/jpeg") {
+        self.id = UUID()
+        self.base64Data = base64Data
+        self.mimeType = mimeType
+        self.createdAt = Date()
     }
 }
 

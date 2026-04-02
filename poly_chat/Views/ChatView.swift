@@ -17,6 +17,8 @@ struct ChatView: View {
     @State private var showingDocumentPicker = false
     @State private var showingDocumentPreview: (URL, String)? = nil
     @State private var showingDocumentErrorAlert = false
+    @State private var showingImagePicker = false
+    @State private var selectedImage: UIImage? = nil
     @State private var documentErrorMessage = ""
     @State private var editingMessage: Message? = nil
     @State private var showingNoToolsAlert = false
@@ -117,6 +119,15 @@ struct ChatView: View {
                         .disabled(isLoading)
                         .padding(.trailing, 4)
 
+                        if conversation.model.hasVision == true {
+                            Button(action: { showingImagePicker = true }) {
+                                Image(systemName: "photo")
+                                    .foregroundColor(.blue)
+                            }
+                            .disabled(isLoading)
+                            .padding(.trailing, 4)
+                        }
+
                         TextField("Message", text: $messageText, axis: .vertical)
                             .focused($inputFocused)
                             .padding(.horizontal, 16)
@@ -133,7 +144,7 @@ struct ChatView: View {
                             Image(systemName: "paperplane.fill")
                                 .foregroundColor(.blue)
                         }
-                        .disabled((messageText.isEmpty && showingDocumentPreview == nil) || isLoading)
+                        .disabled((messageText.isEmpty && showingDocumentPreview == nil && selectedImage == nil) || isLoading)
                         .padding(.trailing, 4)
                     }
                     .padding(.horizontal, 16)
@@ -153,6 +164,10 @@ struct ChatView: View {
                             showingDocumentPreview = nil
                         }
                     )
+                }
+
+                if let image = selectedImage {
+                    ImagePreviewView(image: image, onRemove: { selectedImage = nil })
                 }
             } else {
                 Text("Conversation not found")
@@ -225,6 +240,11 @@ struct ChatView: View {
                 onDocumentSelected: handleDocumentSelected,
                 fileTypes: [.pdf]
             )
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker { image in
+                selectedImage = image
+            }
         }
     }
 
@@ -355,6 +375,9 @@ struct ChatView: View {
                     _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation, withPDFAt: fileURL)
                     try? FileManager.default.removeItem(at: fileURL)
                     showingDocumentPreview = nil
+                } else if let image = selectedImage {
+                    selectedImage = nil
+                    _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation, withImage: image)
                 } else {
                     _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
                 }
@@ -395,6 +418,18 @@ struct MessageView: View {
                 VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
                 if let attachment = message.documentAttachment {
                     DocumentAttachmentView(attachment: attachment)
+                        .padding(.bottom, 4)
+                }
+
+                if let imageAttachment = message.imageAttachment,
+                   let imageData = Data(base64Encoded: imageAttachment.base64Data),
+                   let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 180, height: 180)
+                        .clipped()
+                        .cornerRadius(10)
                         .padding(.bottom, 4)
                 }
 
@@ -574,6 +609,34 @@ struct DocumentPreviewView: View {
                 Image(systemName: "doc.text.fill")
                 Text(fileName)
                 Spacer()
+                Button(action: onRemove) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.red)
+                }
+            }
+            Divider()
+        }
+        .padding()
+    }
+}
+
+struct ImagePreviewView: View {
+    let image: UIImage
+    let onRemove: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 64, height: 64)
+                    .clipped()
+                    .cornerRadius(8)
+                Text("Image attached")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Button(action: onRemove) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.red)

@@ -36,8 +36,18 @@ class OpenAIBackendAdapter: BackendAdapter {
         // Convert messages to OpenAI format, handling tool roles and tool_calls fields
         let openAIMessages: [[String: Any]] = messages.map { message in
             switch message.role {
-            case .system, .user:
-                return ["role": message.role.rawValue, "content": message.content]
+            case .system:
+                return ["role": "system", "content": message.content]
+            case .user:
+                if let img = message.imageAttachment {
+                    // OpenAI vision: content must be an array of typed parts
+                    let contentArray: [[String: Any]] = [
+                        ["type": "text", "text": message.content],
+                        ["type": "image_url", "image_url": ["url": "data:\(img.mimeType);base64,\(img.base64Data)"]]
+                    ]
+                    return ["role": "user", "content": contentArray]
+                }
+                return ["role": "user", "content": message.content]
             case .assistant:
                 if let toolCalls = message.toolCalls, !toolCalls.isEmpty {
                     let oaiCalls = toolCalls.map { call -> [String: Any] in
