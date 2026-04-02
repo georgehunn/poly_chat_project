@@ -74,7 +74,7 @@ struct SettingsView: View {
 
                 Section(header: Text("About")) {
                     Text("PolyChat v1.0")
-                    Text("Open source ChatGPT alternative")
+                    Text("Open source AI chat application")
                 }
             }
             .navigationTitle("Settings")

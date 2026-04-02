@@ -8,7 +8,7 @@ struct Conversation: Identifiable, Codable {
     var updatedAt: Date
     var model: ModelInfo
 
-    init(title: String = "New Conversation", model: ModelInfo) {
+    init(title: String = "New Chat", model: ModelInfo) {
         self.id = UUID()
         self.title = title
         self.messages = []

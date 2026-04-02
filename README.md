@@ -1,6 +1,6 @@
 # PolyChat - iPhone AI Chat Application ✅
 
-An open-source ChatGPT-like application for iPhone that integrates with Ollama and other AI providers.
+An open-source AI chat application for iPhone that integrates with Ollama and other AI providers.
 
 **Status: Ready for Testing!** All compilation issues have been resolved.
 
