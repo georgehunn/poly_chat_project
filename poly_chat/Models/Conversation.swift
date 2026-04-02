@@ -27,7 +27,7 @@ extension Conversation {
 struct Message: Identifiable, Codable {
     let id: UUID
     let role: Role
-    let content: String
+    var content: String
     let timestamp: Date
     let documentAttachment: DocumentAttachment?
 

@@ -209,6 +209,47 @@ class ChatManager: ObservableObject {
         return conversation.title == "New Chat"
     }
 
+    /// Update a message and truncate the conversation after that message
+    /// - Parameters:
+    ///   - messageId: The ID of the message to update
+    ///   - newContent: The new content for the message
+    ///   - conversation: The conversation containing the message
+    func updateMessage(_ messageId: UUID, to newContent: String, in conversation: Conversation) async throws {
+        // Find the conversation in our list
+        guard let index = conversations.firstIndex(where: { $0.id == conversation.id }) else {
+            throw ChatError.conversationNotFound
+        }
+
+        var updatedConversation = conversations[index]
+
+        // Find the message to update
+        guard let messageIndex = updatedConversation.messages.firstIndex(where: { $0.id == messageId }) else {
+            throw ChatError.messageNotFound
+        }
+
+        // Update the message content
+        var updatedMessage = updatedConversation.messages[messageIndex]
+        updatedMessage.content = newContent
+        updatedConversation.messages[messageIndex] = updatedMessage
+
+        // Truncate all messages after the updated message
+        updatedConversation.messages.removeSubrange((messageIndex + 1)..<updatedConversation.messages.count)
+
+        // Update timestamp
+        updatedConversation.updatedAt = Date()
+
+        // Update conversation in the list
+        conversations[index] = updatedConversation
+
+        // Save to local storage
+        storageService.saveConversations(conversations)
+
+        // Resend to get a fresh AI response for the edited message
+        isLoading = true
+        defer { isLoading = false }
+        _ = try await sendRegularMessage(conversation: updatedConversation, atIndex: index)
+    }
+
     /// Update conversation title using LLM based on message content
     private func updateTitleForConversation(_ conversation: Conversation) async {
         // Filter out system messages for title generation
@@ -238,4 +279,5 @@ enum ChatError: Error {
     case documentTooLarge
     case noTextInDocument
     case invalidPDF
+    case messageNotFound
 }

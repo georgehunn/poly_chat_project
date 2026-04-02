@@ -18,6 +18,8 @@ struct ChatView: View {
     @State private var showingDocumentPreview: (URL, String)? = nil
     @State private var showingDocumentErrorAlert = false
     @State private var documentErrorMessage = ""
+    @State private var editingMessage: Message? = nil
+    @FocusState private var inputFocused: Bool
     @EnvironmentObject private var chatManager: ChatManager
 
     @AppStorage("darkMode") private var darkMode: Bool = false
@@ -27,7 +29,7 @@ struct ChatView: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
             if let conversation = conversation {
                 HStack {
                     Text("Model: \(conversation.model.displayName) (\(conversation.model.provider))")
@@ -41,11 +43,15 @@ struct ChatView: View {
                     LazyVStack {
                         ForEach(conversation.messages) { message in
                             if message.role != .system {
-                                MessageView(message: message)
+                                MessageView(message: message, conversation: conversation) { msg, displayText in
+                                    editingMessage = msg
+                                    messageText = displayText
+                                    inputFocused = true
+                                }
                             }
                         }
 
-                        if isLoading {
+                        if isLoading || chatManager.isLoading {
                             HStack {
                                 Spacer()
                                 HStack(spacing: 8) {
@@ -71,34 +77,61 @@ struct ChatView: View {
                         .padding(.horizontal)
                 }
 
-                HStack {
-                    Button(action: { showingDocumentPicker = true }) {
-                        Image(systemName: "paperclip")
-                            .foregroundColor(.blue)
+                VStack(spacing: 0) {
+                    if editingMessage != nil {
+                        HStack(spacing: 6) {
+                            Image(systemName: "pencil")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                            Text("Editing message")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Button(action: {
+                                editingMessage = nil
+                                messageText = ""
+                            }) {
+                                Image(systemName: "xmark")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 4)
                     }
-                    .disabled(isLoading)
-                    .padding(.trailing, 4)
 
-                    TextField("Message", text: $messageText, axis: .vertical)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(20)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                        )
+                    HStack {
+                        Button(action: { showingDocumentPicker = true }) {
+                            Image(systemName: "paperclip")
+                                .foregroundColor(.blue)
+                        }
                         .disabled(isLoading)
+                        .padding(.trailing, 4)
 
-                    Button(action: sendMessage) {
-                        Image(systemName: "paperplane.fill")
-                            .foregroundColor(.blue)
+                        TextField("Message", text: $messageText, axis: .vertical)
+                            .focused($inputFocused)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(Color(.systemBackground))
+                            .cornerRadius(20)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            )
+                            .disabled(isLoading)
+
+                        Button(action: sendMessage) {
+                            Image(systemName: "paperplane.fill")
+                                .foregroundColor(.blue)
+                        }
+                        .disabled((messageText.isEmpty && showingDocumentPreview == nil) || isLoading)
+                        .padding(.trailing, 4)
                     }
-                    .disabled((messageText.isEmpty && showingDocumentPreview == nil) || isLoading)
-                    .padding(.trailing, 4)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 20)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 20)
                 .background(Color(.systemGroupedBackground))
 
                 if let (fileURL, fileName) = showingDocumentPreview {
@@ -226,10 +259,27 @@ struct ChatView: View {
 
         guard let conversation = conversation else { return }
 
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+
+        if let msgToEdit = editingMessage {
+            let content = messageText
+            messageText = ""
+            editingMessage = nil
+            Task {
+                isLoading = true
+                defer { isLoading = false }
+                do {
+                    try await chatManager.updateMessage(msgToEdit.id, to: content, in: conversation)
+                } catch {
+                    documentErrorMessage = error.localizedDescription
+                    showingDocumentErrorAlert = true
+                }
+            }
+            return
+        }
+
         lastMessageToSend = messageText
         messageText = ""
-
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
 
         Task {
             isLoading = true
@@ -253,7 +303,10 @@ struct ChatView: View {
 
 struct MessageView: View {
     let message: Message
+    let conversation: Conversation
+    let onEdit: (Message, String) -> Void
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var chatManager: ChatManager
     @State private var messageHeight: CGFloat = 1
 
     private func bubbleWidth() -> CGFloat {
@@ -267,12 +320,14 @@ struct MessageView: View {
     }
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 0) {
-            if message.role == .user {
-                Spacer(minLength: 32)
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            // Message content area
+            HStack(alignment: .bottom, spacing: 0) {
+                if message.role == .user {
+                    Spacer(minLength: 32)
+                }
 
-            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
+                VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
                 if let attachment = message.documentAttachment {
                     DocumentAttachmentView(attachment: attachment)
                         .padding(.bottom, 4)
@@ -290,12 +345,25 @@ struct MessageView: View {
                             .padding(12)
                             .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
                             .cornerRadius(10)
-                            .frame(maxWidth: bubbleWidth(), alignment: message.role == .user ? .trailing : .leading)
                             .contextMenu {
                                 Button(action: copyMessage) {
                                     Label("Copy", systemImage: "doc.on.doc")
                                 }
+                                if message.role == .user {
+                                    Button(action: startEditing) {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+                                }
+                            } preview: {
+                                Text(getDisplayContent(message.content))
+                                    .font(.system(size: 17))
+                                    .lineSpacing(4)
+                                    .foregroundColor(.primary)
+                                    .padding(12)
+                                    .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
                             }
+                            .frame(maxWidth: bubbleWidth(), alignment: message.role == .user ? .trailing : .leading)
                     } else {
                         MarkdownWebView(
                             markdown: getDisplayContent(message.content),
@@ -307,12 +375,24 @@ struct MessageView: View {
                         .padding(12)
                         .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
                         .cornerRadius(10)
-                        .frame(maxWidth: bubbleWidth(), alignment: message.role == .user ? .trailing : .leading)
                         .contextMenu {
                             Button(action: copyMessage) {
                                 Label("Copy", systemImage: "doc.on.doc")
                             }
+                            if message.role == .user {
+                                Button(action: startEditing) {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                            }
+                        } preview: {
+                            Text(getDisplayContent(message.content))
+                                .font(.system(size: 17))
+                                .foregroundColor(.primary)
+                                .padding(12)
+                                .background(message.role == .user ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
                         }
+                        .frame(maxWidth: bubbleWidth(), alignment: message.role == .user ? .trailing : .leading)
                     }
                 }
 
@@ -327,6 +407,7 @@ struct MessageView: View {
             }
         }
         .padding(.horizontal)
+    }
     }
 
     private func shouldUseNativeText(_ content: String) -> Bool {
@@ -385,6 +466,11 @@ struct MessageView: View {
         }
 
         return content
+    }
+
+    private func startEditing() {
+        guard message.role == .user else { return }
+        onEdit(message, getDisplayContent(message.content))
     }
 
     private func formatDate(_ date: Date) -> String {

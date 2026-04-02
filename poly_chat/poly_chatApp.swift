@@ -6,7 +6,7 @@ struct PolyChatApp: App {
     @StateObject private var chatManager = ChatManager()
     @StateObject private var modelManager = ModelManager()
 
-    @AppStorage("darkMode") private var darkMode = false
+    @AppStorage("darkMode") private var darkMode = true
 
     var body: some Scene {
         WindowGroup {
