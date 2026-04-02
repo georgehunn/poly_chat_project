@@ -10,7 +10,7 @@ private enum ValidationState {
 struct SettingsView: View {
     @State private var ollamaEndpoint = "https://ollama.com/api"
     @State private var apiKey = ""
-    @State private var braveAPIKey = ""
+    @State private var tavilyAPIKey = ""
     @AppStorage("darkMode") private var darkMode = false
     @State private var systemPrompt = ""
     @State private var showingDeleteAlert = false
@@ -69,14 +69,15 @@ struct SettingsView: View {
                 }
 
                 Section(header: Text("Web Search")) {
-                    SecureField("Tavily API Key", text: $braveAPIKey)
+                    SecureField("Tavily API Key", text: $tavilyAPIKey)
                         .textContentType(.password)
                         .disableAutocorrection(true)
                         .submitLabel(.done)
                         .onSubmit { saveSettings() }
-                        .onChange(of: braveAPIKey) { _ in
+                        .onChange(of: tavilyAPIKey) { _ in
                             saveSettings()
                             tavilyStatus = .idle
+                            chatManager.tavilyKeyInvalid = false
                         }
                     Button("Test Key") {
                         saveSettings()
@@ -90,7 +91,7 @@ struct SettingsView: View {
                             }
                         }
                     }
-                    .disabled(braveAPIKey.isEmpty || {
+                    .disabled(tavilyAPIKey.isEmpty || {
                         if case .testing = tavilyStatus { return true }
                         return false
                     }())
@@ -185,8 +186,8 @@ struct SettingsView: View {
         if let savedApiKey = secureStorageService.getAPIKey() {
             apiKey = savedApiKey
         }
-        if let savedBraveKey = secureStorageService.getBraveAPIKey() {
-            braveAPIKey = savedBraveKey
+        if let savedTavilyKey = secureStorageService.getTavilyAPIKey() {
+            tavilyAPIKey = savedTavilyKey
         }
         systemPrompt = UserDefaults.standard.string(forKey: "systemPrompt") ?? ""
     }
@@ -197,7 +198,7 @@ struct SettingsView: View {
 
         secureStorageService.saveEndpoint(normalizedEndpoint)
         secureStorageService.saveAPIKey(apiKey)
-        secureStorageService.saveBraveAPIKey(braveAPIKey)
+        secureStorageService.saveTavilyAPIKey(tavilyAPIKey)
         UserDefaults.standard.set(systemPrompt, forKey: "systemPrompt")
 
         print("Saved settings - Endpoint: \(normalizedEndpoint), API Key present: \(!apiKey.isEmpty)")

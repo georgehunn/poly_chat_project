@@ -11,6 +11,10 @@ class ChatManager: ObservableObject {
     @Published var activeToolName: String?
     @Published var showOutOfCreditsAlert = false
     @Published var showWebSearchFailedAlert = false
+    @Published var showInvalidKeyAlert = false
+    @Published var tavilyKeyInvalid: Bool = UserDefaults.standard.bool(forKey: "tavilyKeyInvalid") {
+        didSet { UserDefaults.standard.set(tavilyKeyInvalid, forKey: "tavilyKeyInvalid") }
+    }
 
     private let storageService = LocalStorageService()
 
@@ -296,6 +300,14 @@ class ChatManager: ObservableObject {
                             do {
                                 result = try await WebSearchService.shared.search(query: query)
                                 print("[ToolLoop] Search result: \(result.count) chars")
+                                DispatchQueue.main.async { self.tavilyKeyInvalid = false }
+                            } catch WebSearchService.WebSearchError.invalidKey {
+                                print("[ToolLoop] Search FAILED — invalid API key")
+                                DispatchQueue.main.async {
+                                    self.tavilyKeyInvalid = true
+                                    self.showInvalidKeyAlert = true
+                                }
+                                result = "Web search failed: API key is invalid."
                             } catch WebSearchService.WebSearchError.outOfCredits {
                                 print("[ToolLoop] Search FAILED — out of credits")
                                 DispatchQueue.main.async { self.showOutOfCreditsAlert = true }

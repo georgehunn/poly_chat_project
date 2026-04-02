@@ -31,17 +31,17 @@ class SecureStorageService {
         return KeychainService.shared.delete(service: serviceName, account: "endpoint")
     }
 
-    func saveBraveAPIKey(_ key: String) -> Bool {
+    func saveTavilyAPIKey(_ key: String) -> Bool {
         guard let data = key.data(using: .utf8) else { return false }
-        return KeychainService.shared.save(service: serviceName, account: "braveAPIKey", data: data)
+        return KeychainService.shared.save(service: serviceName, account: "tavilyAPIKey", data: data)
     }
 
-    func getBraveAPIKey() -> String? {
-        guard let data = KeychainService.shared.load(service: serviceName, account: "braveAPIKey") else { return nil }
+    func getTavilyAPIKey() -> String? {
+        guard let data = KeychainService.shared.load(service: serviceName, account: "tavilyAPIKey") else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
-    func deleteBraveAPIKey() -> Bool {
-        return KeychainService.shared.delete(service: serviceName, account: "braveAPIKey")
+    func deleteTavilyAPIKey() -> Bool {
+        return KeychainService.shared.delete(service: serviceName, account: "tavilyAPIKey")
     }
 }

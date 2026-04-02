@@ -32,6 +32,106 @@ struct ChatView: View {
         chatManager.conversations.first { $0.id == conversationId }
     }
 
+    private var webSearchOK: Bool {
+        hasTavilyKey && !chatManager.tavilyKeyInvalid
+    }
+
+    private var hasTavilyKey: Bool {
+        WebSearchService.shared.apiKey != nil
+    }
+
+    private var loadingBubble: some View {
+        HStack {
+            Spacer()
+            HStack(spacing: 8) {
+                if let toolName = chatManager.activeToolName {
+                    Image(systemName: toolIcon(for: toolName))
+                        .foregroundColor(.blue)
+                } else {
+                    ProgressView()
+                }
+                Text(loadingLabel)
+                    .font(.system(.body, design: .rounded))
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(20)
+            Spacer()
+        }
+        .animation(.easeInOut(duration: 0.2), value: chatManager.activeToolName)
+    }
+
+    @ViewBuilder
+    private func inputBar(for conversation: Conversation) -> some View {
+        VStack(spacing: 0) {
+            if editingMessage != nil {
+                HStack(spacing: 6) {
+                    Image(systemName: "pencil")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    Text("Editing message")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button(action: {
+                        editingMessage = nil
+                        messageText = ""
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+            }
+
+            HStack {
+                Button(action: { showingDocumentPicker = true }) {
+                    Image(systemName: "paperclip")
+                        .foregroundColor(.blue)
+                }
+                .disabled(isLoading)
+                .padding(.trailing, 4)
+
+                if conversation.model.hasVision == true {
+                    Button(action: { showingImagePicker = true }) {
+                        Image(systemName: "photo")
+                            .foregroundColor(.blue)
+                    }
+                    .disabled(isLoading)
+                    .padding(.trailing, 4)
+                }
+
+                TextField("Message", text: $messageText, axis: .vertical)
+                    .focused($inputFocused)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color(.systemBackground))
+                    .cornerRadius(20)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
+                    .disabled(isLoading)
+
+                Button(action: sendMessage) {
+                    Image(systemName: "paperplane.fill")
+                        .foregroundColor(.blue)
+                }
+                .disabled((messageText.isEmpty && showingDocumentPreview == nil && selectedImage == nil) || isLoading)
+                .padding(.trailing, 4)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
+        }
+        .background(Color(.systemGroupedBackground))
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if let conversation = conversation {
@@ -54,28 +154,8 @@ struct ChatView: View {
                                 }
                             }
                         }
-
                         if isLoading || chatManager.isLoading {
-                            HStack {
-                                Spacer()
-                                HStack(spacing: 8) {
-                                    if let toolName = chatManager.activeToolName {
-                                        Image(systemName: toolIcon(for: toolName))
-                                            .foregroundColor(.blue)
-                                    } else {
-                                        ProgressView()
-                                    }
-                                    Text(loadingLabel)
-                                        .font(.system(.body, design: .rounded))
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding()
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(20)
-                                Spacer()
-                            }
-                            .animation(.easeInOut(duration: 0.2), value: chatManager.activeToolName)
+                            loadingBubble
                         }
                     }
                 }
@@ -87,71 +167,7 @@ struct ChatView: View {
                         .padding(.horizontal)
                 }
 
-                VStack(spacing: 0) {
-                    if editingMessage != nil {
-                        HStack(spacing: 6) {
-                            Image(systemName: "pencil")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                            Text("Editing message")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Button(action: {
-                                editingMessage = nil
-                                messageText = ""
-                            }) {
-                                Image(systemName: "xmark")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-                        .padding(.bottom, 4)
-                    }
-
-                    HStack {
-                        Button(action: { showingDocumentPicker = true }) {
-                            Image(systemName: "paperclip")
-                                .foregroundColor(.blue)
-                        }
-                        .disabled(isLoading)
-                        .padding(.trailing, 4)
-
-                        if conversation.model.hasVision == true {
-                            Button(action: { showingImagePicker = true }) {
-                                Image(systemName: "photo")
-                                    .foregroundColor(.blue)
-                            }
-                            .disabled(isLoading)
-                            .padding(.trailing, 4)
-                        }
-
-                        TextField("Message", text: $messageText, axis: .vertical)
-                            .focused($inputFocused)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(Color(.systemBackground))
-                            .cornerRadius(20)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                            )
-                            .disabled(isLoading)
-
-                        Button(action: sendMessage) {
-                            Image(systemName: "paperplane.fill")
-                                .foregroundColor(.blue)
-                        }
-                        .disabled((messageText.isEmpty && showingDocumentPreview == nil && selectedImage == nil) || isLoading)
-                        .padding(.trailing, 4)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .padding(.bottom, 20)
-                }
-                .background(Color(.systemGroupedBackground))
+                inputBar(for: conversation)
 
                 if let (fileURL, fileName) = showingDocumentPreview {
                     DocumentPreviewView(
@@ -175,6 +191,16 @@ struct ChatView: View {
             }
         }
         .navigationTitle(conversation?.title ?? "Chat")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    if !webSearchOK { showingNoAPIKeyAlert = true }
+                }) {
+                    Image(systemName: "globe")
+                        .foregroundStyle(webSearchOK ? Color.blue : Color.red)
+                }
+            }
+        }
         .alert("Configuration Required", isPresented: $showingConfigAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Open Settings") {
@@ -215,11 +241,19 @@ struct ChatView: View {
         } message: {
             Text("This model doesn't support tool use. To search the web, switch to a model with the Tools capability.")
         }
-        .alert("Web Search API Key Missing", isPresented: $showingNoAPIKeyAlert) {
+        .alert(hasTavilyKey ? "Invalid API Key" : "Web Search API Key Missing", isPresented: $showingNoAPIKeyAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Open Settings") { showingSettings = true }
         } message: {
-            Text("A Tavily API key is required for web search. Add one in Settings to enable this feature.")
+            Text(hasTavilyKey
+                ? "The Tavily API key was rejected. Update it in Settings."
+                : "A Tavily API key is required for web search. Add one in Settings to enable this feature.")
+        }
+        .alert("Invalid Tavily API Key", isPresented: $chatManager.showInvalidKeyAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Open Settings") { showingSettings = true }
+        } message: {
+            Text("Your Tavily API key was rejected. Please update it in Settings.")
         }
         .alert("Web Search Failed", isPresented: $chatManager.showWebSearchFailedAlert) {
             Button("Cancel", role: .cancel) { }
@@ -334,14 +368,9 @@ struct ChatView: View {
 
         guard let conversation = conversation else { return }
 
-        if looksLikeWebSearch(messageText) {
-            if conversation.model.hasTools != true {
-                showingNoToolsAlert = true
-                return
-            } else if WebSearchService.shared.apiKey == nil {
-                showingNoAPIKeyAlert = true
-                return
-            }
+        if looksLikeWebSearch(messageText) && conversation.model.hasTools != true {
+            showingNoToolsAlert = true
+            return
         }
 
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)

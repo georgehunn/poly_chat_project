@@ -9,7 +9,7 @@ class WebSearchService {
 
     /// Returns the configured Tavily API key, or nil if not set.
     var apiKey: String? {
-        guard let key = secureStorage.getBraveAPIKey(), !key.isEmpty else { return nil }
+        guard let key = secureStorage.getTavilyAPIKey(), !key.isEmpty else { return nil }
         return key
     }
 
@@ -46,6 +46,10 @@ class WebSearchService {
 
         if let httpResponse = response as? HTTPURLResponse {
             print("[WebSearch] HTTP \(httpResponse.statusCode)")
+            if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                print("[WebSearch] ERROR — invalid API key (\(httpResponse.statusCode))")
+                throw WebSearchError.invalidKey
+            }
             if httpResponse.statusCode == 402 {
                 print("[WebSearch] ERROR — out of credits (402)")
                 throw WebSearchError.outOfCredits
@@ -103,11 +107,13 @@ class WebSearchService {
 
     enum WebSearchError: LocalizedError {
         case noAPIKey
+        case invalidKey
         case outOfCredits
 
         var errorDescription: String? {
             switch self {
-            case .noAPIKey: return "Tavily API key is not configured."
+            case .noAPIKey:     return "Tavily API key is not configured."
+            case .invalidKey:   return "Tavily API key is invalid or unauthorized."
             case .outOfCredits: return "Web search credits exhausted."
             }
         }
