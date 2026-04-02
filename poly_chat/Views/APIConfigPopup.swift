@@ -4,7 +4,7 @@ import UIKit
 struct APIConfigPopup: View {
     @Environment(\.presentationMode) var presentationMode
 
-    @State private var endpoint = "http://localhost:11434"
+    @State private var endpoint = "https://ollama.com/api"
     @State private var apiKey = ""
     @State private var isValidating = false
     @State private var validationMessage: String?

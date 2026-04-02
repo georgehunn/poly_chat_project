@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var ollamaEndpoint = "http://localhost:11434"
+    @State private var ollamaEndpoint = "https://ollama.com/api"
     @State private var apiKey = ""
     @AppStorage("darkMode") private var darkMode = false
     @State private var systemPrompt = ""
@@ -73,7 +73,7 @@ struct SettingsView: View {
                 }
 
                 Section(header: Text("About")) {
-                    Text("OpenChat v1.0")
+                    Text("PolyChat v1.0")
                     Text("Open source ChatGPT alternative")
                 }
             }
@@ -144,7 +144,7 @@ struct SettingsView: View {
             let data = try JSONEncoder().encode(conversations)
 
             // Create a temporary file URL
-            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("openchat_export.json")
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("polychat_export.json")
             try data.write(to: tempURL)
 
             exportedData = data

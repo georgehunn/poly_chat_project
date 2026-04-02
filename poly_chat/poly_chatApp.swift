@@ -1,8 +1,8 @@
 import SwiftUI
-import open_chat
+import poly_chat
 
 @main
-struct OpenChatApp: App {
+struct PolyChatApp: App {
     @StateObject private var chatManager = ChatManager()
     @StateObject private var modelManager = ModelManager()
 

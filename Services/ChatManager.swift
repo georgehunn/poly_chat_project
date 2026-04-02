@@ -1,6 +1,6 @@
 import Foundation
 import Combine
-import open_chat
+import poly_chat
 
 class ChatManager: ObservableObject {
     @Published var conversations: [Conversation] = []

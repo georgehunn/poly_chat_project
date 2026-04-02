@@ -1,4 +1,4 @@
-# OpenChat - iPhone AI Chat Application ✅
+# PolyChat - iPhone AI Chat Application ✅
 
 An open-source ChatGPT-like application for iPhone that integrates with Ollama and other AI providers.
 
@@ -6,7 +6,7 @@ An open-source ChatGPT-like application for iPhone that integrates with Ollama a
 
 ## Overview
 
-OpenChat is a native iOS application that provides a seamless chat experience with locally-hosted AI models through Ollama. Unlike proprietary solutions, OpenChat gives you full control over your data and model choices.
+PolyChat is a native iOS application that provides a seamless chat experience with locally-hosted AI models through Ollama. Unlike proprietary solutions, PolyChat gives you full control over your data and model choices.
 
 ## Features
 
@@ -44,15 +44,15 @@ OpenChat is a native iOS application that provides a seamless chat experience wi
 ## Project Structure
 
 ```
-open_chat/
-├── open_chat/                 # Main source code
-│   ├── Models/               # Data models (Conversation, Message, etc.)
-│   ├── Services/             # Business logic (ChatManager, OllamaService)
-│   ├── Views/                # UI components (ContentView, ChatView, etc.)
-│   └── open_chatApp.swift    # Main app entry point
-├── open_chatTests/           # Unit tests
-├── open_chatUITests/         # UI tests
-└── open_chat.xcodeproj/      # Xcode project file
+poly_chat/
+├── poly_chat/                # Main source code
+│   ├── Models/              # Data models (Conversation, Message, etc.)
+│   ├── Services/            # Business logic (ChatManager, OllamaService)
+│   ├── Views/               # UI components (ContentView, ChatView, etc.)
+│   └── poly_chatApp.swift   # Main app entry point
+├── poly_chatTests/          # Unit tests
+├── poly_chatUITests/        # UI tests
+└── Poly_Chat.xcodeproj/     # Xcode project file
 ```
 
 ## Getting Started
@@ -64,7 +64,7 @@ open_chat/
 
 ### Installation
 1. Clone or download this project
-2. Open `open_chat.xcodeproj` in Xcode
+2. Open `Poly_Chat.xcodeproj` in Xcode
 3. Add Security.framework to your project (see XCODE_SETUP.md)
 4. **IMPORTANT**: All compilation issues have been resolved! ✅
 5. Select a simulator or connected device
@@ -86,7 +86,7 @@ Run unit tests by pressing Cmd+U in Xcode or:
 ```bash
 # In Xcode, go to Product → Test
 # Or use xcodebuild:
-xcodebuild test -project open_chat.xcodeproj -scheme open_chat -destination 'platform=iOS Simulator,name=iPhone 14'
+xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'platform=iOS Simulator,name=iPhone 14'
 ```
 
 ### Manual Testing

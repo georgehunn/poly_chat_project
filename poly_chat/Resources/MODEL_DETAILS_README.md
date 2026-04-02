@@ -1,6 +1,6 @@
 # Model Details Management
 
-This document explains how to manage model details in the Open Chat application.
+This document explains how to manage model details in the Poly Chat application.
 
 ## Overview
 
@@ -10,7 +10,7 @@ The application uses a local JSON file (`model_details.json`) to store comprehen
 
 The model details file is located at:
 ```
-open_chat/Resources/model_details.json
+poly_chat/Resources/model_details.json
 ```
 
 ## Structure
@@ -33,7 +33,7 @@ The JSON file contains an array of model objects with the following properties:
 
 To update model information:
 
-1. Open `open_chat/Resources/model_details.json` in a text editor
+1. Open `poly_chat/Resources/model_details.json` in a text editor
 2. Modify existing entries or add new model objects to the `models` array
 3. Ensure all required fields are present
 4. Validate the JSON syntax

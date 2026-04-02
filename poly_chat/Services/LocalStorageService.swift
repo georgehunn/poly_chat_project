@@ -1,7 +1,7 @@
 import Foundation
 
 class LocalStorageService {
-    private let conversationsKey = "OpenChatConversations"
+    private let conversationsKey = "PolyChatConversations"
 
     func saveConversations(_ conversations: [Conversation]) {
         do {

@@ -1,7 +1,7 @@
 import Foundation
 
 class SecureStorageService {
-    private let serviceName = "com.openchat.app"
+    private let serviceName = "com.polychat.app"
 
     func saveAPIKey(_ apiKey: String) -> Bool {
         guard let data = apiKey.data(using: .utf8) else { return false }

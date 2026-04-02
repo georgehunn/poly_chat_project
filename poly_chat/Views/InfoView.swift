@@ -12,7 +12,7 @@ struct InfoView: View {
                         Image(systemName: "info.circle")
                             .font(.largeTitle)
                             .foregroundColor(.blue)
-                        Text("OpenChat Help")
+                        Text("PolyChat Help")
                             .font(.title)
                             .fontWeight(.bold)
                     }
@@ -20,7 +20,7 @@ struct InfoView: View {
                     .padding(.bottom, 10)
 
                     // How to Use
-                    InfoSectionView(title: "How to Use OpenChat") {
+                    InfoSectionView(title: "How to Use PolyChat") {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("1. Follow API key setup instructions below")
                                 .padding(.vertical, 2)
@@ -38,7 +38,7 @@ struct InfoView: View {
                     // API Key Information
                     InfoSectionView(title: "API Key Information") {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("OpenChat works with models that are accessable via API, Ollama has a large amount of opensource models that can be accessed for free if you create an account.")
+                            Text("PolyChat works with models that are accessable via API, Ollama has a large amount of opensource models that can be accessed for free if you create an account.")
                                 .padding(.bottom, 5)
 
                             Text("To use Ollama servers:")
@@ -60,7 +60,7 @@ struct InfoView: View {
                     }
 
                     // Ollama Information
-                    InfoSectionView(title: "About Open_Chat") {
+                    InfoSectionView(title: "About Poly_Chat") {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Open_chat allows you to access LLMs via api while keeping ownership over your data - nothing is saved on the cloud")
                                 .padding(.bottom, 5)

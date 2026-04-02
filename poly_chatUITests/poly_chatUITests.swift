@@ -1,13 +1,13 @@
 //
-//  open_chatUITests.swift
-//  open_chatUITests
+//  poly_chatUITests.swift
+//  poly_chatUITests
 //
 //  Created by George Hunn on 24.03.26.
 //
 
 import XCTest
 
-final class open_chatUITests: XCTestCase {
+final class PolyChatUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

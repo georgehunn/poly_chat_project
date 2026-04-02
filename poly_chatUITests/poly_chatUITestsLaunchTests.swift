@@ -1,13 +1,13 @@
 //
-//  open_chatUITestsLaunchTests.swift
-//  open_chatUITests
+//  poly_chatUITestsLaunchTests.swift
+//  poly_chatUITests
 //
 //  Created by George Hunn on 24.03.26.
 //
 
 import XCTest
 
-final class open_chatUITestsLaunchTests: XCTestCase {
+final class PolyChatUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
