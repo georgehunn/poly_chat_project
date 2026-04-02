@@ -8,6 +8,8 @@ class ChatManager: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var activeToolName: String?
+    @Published var showOutOfCreditsAlert = false
+    @Published var showWebSearchFailedAlert = false
 
     private let storageService = LocalStorageService()
 
@@ -262,8 +264,13 @@ class ChatManager: ObservableObject {
                             do {
                                 result = try await WebSearchService.shared.search(query: query)
                                 print("[ToolLoop] Search result: \(result.count) chars")
+                            } catch WebSearchService.WebSearchError.outOfCredits {
+                                print("[ToolLoop] Search FAILED — out of credits")
+                                DispatchQueue.main.async { self.showOutOfCreditsAlert = true }
+                                result = "Web search unavailable: API credits exhausted."
                             } catch {
                                 print("[ToolLoop] Search FAILED: \(error)")
+                                DispatchQueue.main.async { self.showWebSearchFailedAlert = true }
                                 result = "Web search failed: \(error.localizedDescription)"
                             }
                         } else {

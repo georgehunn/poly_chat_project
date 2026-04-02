@@ -4,6 +4,27 @@ import Combine
 class ModelManager: ObservableObject {
     @Published var models: [ModelInfo] = []
     @Published var isLoading = false
+    @Published var starredModelNames: Set<String> = {
+        // Default star "nemotron-3-super" on first launch
+        if UserDefaults.standard.object(forKey: "starredModelNames") == nil {
+            UserDefaults.standard.set(["nemotron-3-super"], forKey: "starredModelNames")
+        }
+        let saved = UserDefaults.standard.stringArray(forKey: "starredModelNames") ?? []
+        return Set(saved)
+    }()
+
+    func toggleStar(for model: ModelInfo) {
+        if starredModelNames.contains(model.name) {
+            starredModelNames.remove(model.name)
+        } else {
+            starredModelNames.insert(model.name)
+        }
+        UserDefaults.standard.set(Array(starredModelNames), forKey: "starredModelNames")
+    }
+
+    func isStarred(_ model: ModelInfo) -> Bool {
+        starredModelNames.contains(model.name)
+    }
 
     init() {
         // Initialize with empty array - models will be loaded from API on demand

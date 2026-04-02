@@ -40,7 +40,18 @@ struct ModelsView: View {
                     } else {
                         ForEach(sortedModels, id: \.name) { model in
                             NavigationLink(value: model) {
-                                ModelRowView(model: model)
+                                ModelRowView(model: model, isStarred: modelManager.isStarred(model))
+                            }
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                Button {
+                                    modelManager.toggleStar(for: model)
+                                } label: {
+                                    Label(
+                                        modelManager.isStarred(model) ? "Unstar" : "Star",
+                                        systemImage: modelManager.isStarred(model) ? "star.slash.fill" : "star.fill"
+                                    )
+                                }
+                                .tint(.yellow)
                             }
                         }
                     }
@@ -89,9 +100,15 @@ struct ModelsView: View {
 
 struct ModelRowView: View {
     let model: ModelInfo
+    var isStarred: Bool = false
 
     var body: some View {
         HStack {
+            if isStarred {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.yellow)
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text(model.displayName)
                     .font(.headline)

@@ -16,8 +16,8 @@ struct ModelSelectionView: View {
     var body: some View {
         NavigationView {
             List {
-                Section(header: Text("Select a Model")) {
-                    if modelManager.isLoading {
+                if modelManager.isLoading {
+                    Section(header: Text("Select a Model")) {
                         HStack {
                             Spacer()
                             VStack {
@@ -29,36 +29,27 @@ struct ModelSelectionView: View {
                             Spacer()
                         }
                         .padding()
-                    } else if modelManager.models.isEmpty {
+                    }
+                } else if modelManager.models.isEmpty {
+                    Section(header: Text("Select a Model")) {
                         Text("No models available")
                             .foregroundColor(.secondary)
-                    } else {
-                        ForEach(sortedModels, id: \.name) { model in
-                            Button(action: {
-                                selectModel(model)
-                            }) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(model.displayName)
-                                            .font(.headline)
-                                        Text(model.provider)
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
+                    }
+                } else {
+                    let starred = sortedModels.filter { modelManager.isStarred($0) }
+                    let unstarred = sortedModels.filter { !modelManager.isStarred($0) }
 
-                                    Spacer()
-
-                                    HStack(spacing: 4) {
-                                        if model.hasVision == true {
-                                            CapabilityBadge(icon: "eye.fill", label: "Vision", color: .purple)
-                                        }
-                                        if model.hasTools == true {
-                                            CapabilityBadge(icon: "wrench.and.screwdriver.fill", label: "Tools", color: .orange)
-                                        }
-                                    }
-                                }
-                                .foregroundColor(.primary)
+                    if !starred.isEmpty {
+                        Section(header: Text("Starred")) {
+                            ForEach(starred, id: \.name) { model in
+                                modelSelectionRow(model)
                             }
+                        }
+                    }
+
+                    Section(header: Text(starred.isEmpty ? "Select a Model" : "All Models")) {
+                        ForEach(unstarred, id: \.name) { model in
+                            modelSelectionRow(model)
                         }
                     }
                 }
@@ -104,6 +95,40 @@ struct ModelSelectionView: View {
             let newConversation = chatManager.createNewConversation(model: model)
         }
         presentationMode.wrappedValue.dismiss()
+    }
+
+    @ViewBuilder
+    private func modelSelectionRow(_ model: ModelInfo) -> some View {
+        Button(action: {
+            selectModel(model)
+        }) {
+            HStack {
+                if modelManager.isStarred(model) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.yellow)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(model.displayName)
+                        .font(.headline)
+                    Text(model.provider)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    if model.hasVision == true {
+                        CapabilityBadge(icon: "eye.fill", label: "Vision", color: .purple)
+                    }
+                    if model.hasTools == true {
+                        CapabilityBadge(icon: "wrench.and.screwdriver.fill", label: "Tools", color: .orange)
+                    }
+                }
+            }
+            .foregroundColor(.primary)
+        }
     }
 
     private var sortedModels: [ModelInfo] {

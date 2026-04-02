@@ -46,6 +46,10 @@ class WebSearchService {
 
         if let httpResponse = response as? HTTPURLResponse {
             print("[WebSearch] HTTP \(httpResponse.statusCode)")
+            if httpResponse.statusCode == 402 {
+                print("[WebSearch] ERROR — out of credits (402)")
+                throw WebSearchError.outOfCredits
+            }
             if httpResponse.statusCode >= 400 {
                 let errorBody = String(data: data, encoding: .utf8) ?? ""
                 print("[WebSearch] ERROR body: \(errorBody)")
@@ -99,9 +103,13 @@ class WebSearchService {
 
     enum WebSearchError: LocalizedError {
         case noAPIKey
+        case outOfCredits
 
         var errorDescription: String? {
-            "Tavily API key is not configured."
+            switch self {
+            case .noAPIKey: return "Tavily API key is not configured."
+            case .outOfCredits: return "Web search credits exhausted."
+            }
         }
     }
 }

@@ -19,6 +19,8 @@ struct ChatView: View {
     @State private var showingDocumentErrorAlert = false
     @State private var documentErrorMessage = ""
     @State private var editingMessage: Message? = nil
+    @State private var showingNoToolsAlert = false
+    @State private var showingNoAPIKeyAlert = false
     @FocusState private var inputFocused: Bool
     @EnvironmentObject private var chatManager: ChatManager
 
@@ -193,6 +195,28 @@ struct ChatView: View {
         } message: {
             Text(documentErrorMessage)
         }
+        .alert("Web Search Unavailable", isPresented: $showingNoToolsAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("This model doesn't support tool use. To search the web, switch to a model with the Tools capability.")
+        }
+        .alert("Web Search API Key Missing", isPresented: $showingNoAPIKeyAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Open Settings") { showingSettings = true }
+        } message: {
+            Text("A Tavily API key is required for web search. Add one in Settings to enable this feature.")
+        }
+        .alert("Web Search Failed", isPresented: $chatManager.showWebSearchFailedAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Open Settings") { showingSettings = true }
+        } message: {
+            Text("The web search request failed. Please check that your Tavily API key is valid in Settings.")
+        }
+        .alert("Web Search Credits Exhausted", isPresented: $chatManager.showOutOfCreditsAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Your Tavily API credits have run out. Add more credits to your account to continue using web search.")
+        }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
@@ -274,6 +298,14 @@ struct ChatView: View {
         }
     }
 
+    private func looksLikeWebSearch(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        let keywords = ["search", "look up", "look it up", "google", "find online",
+                        "browse", "search the web", "web search", "search online",
+                        "search for", "find on the internet", "check online"]
+        return keywords.contains { lower.contains($0) }
+    }
+
     private func sendMessage() {
         if !OllamaService.isConfigured() {
             showingConfigAlert = true
@@ -281,6 +313,16 @@ struct ChatView: View {
         }
 
         guard let conversation = conversation else { return }
+
+        if looksLikeWebSearch(messageText) {
+            if conversation.model.hasTools != true {
+                showingNoToolsAlert = true
+                return
+            } else if WebSearchService.shared.apiKey == nil {
+                showingNoAPIKeyAlert = true
+                return
+            }
+        }
 
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
 
