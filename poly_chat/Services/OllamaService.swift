@@ -3,6 +3,8 @@ import Foundation
 class OllamaService {
     static let shared = OllamaService()
 
+    private let secureStorage = SecureStorageService()
+
     private init() {}
 
     /// Validation result for connection testing
@@ -119,7 +121,6 @@ class OllamaService {
     }
 
     private var baseURL: String {
-        let secureStorage = SecureStorageService()
         // Get from Keychain or use default
         if let savedEndpoint = secureStorage.getEndpoint(),
            !savedEndpoint.isEmpty {
@@ -188,7 +189,6 @@ class OllamaService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // Add API key if available
-        let secureStorage = SecureStorageService()
         if let apiKey = secureStorage.getAPIKey(),
            !apiKey.isEmpty {
             request.setValue(apiKey.hasPrefix("Bearer ") ? apiKey : "Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -313,7 +313,6 @@ class OllamaService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // Add API key if available
-        let secureStorage = SecureStorageService()
         if let apiKey = secureStorage.getAPIKey(),
            !apiKey.isEmpty {
             request.setValue(apiKey.hasPrefix("Bearer ") ? apiKey : "Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -467,7 +466,6 @@ class OllamaService {
         request.httpMethod = "GET"
 
         // Add API key if available
-        let secureStorage = SecureStorageService()
         if let apiKey = secureStorage.getAPIKey(),
            !apiKey.isEmpty {
             request.setValue(apiKey.hasPrefix("Bearer ") ? apiKey : "Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -509,7 +507,6 @@ class OllamaService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // Add API key if available
-        let secureStorage = SecureStorageService()
         if let apiKey = secureStorage.getAPIKey(),
            !apiKey.isEmpty {
             request.setValue(apiKey.hasPrefix("Bearer ") ? apiKey : "Bearer \(apiKey)", forHTTPHeaderField: "Authorization")

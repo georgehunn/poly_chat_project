@@ -13,6 +13,14 @@ class ModelManager: ObservableObject {
         return Set(saved)
     }()
 
+    // Parsed once on first access, then looked up by model name in O(1)
+    private lazy var localModelDetailsCache: [String: ModelInfo] = buildLocalModelDetailsCache()
+
+    private var modelCacheURL: URL {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("cached_models.json")
+    }
+
     func toggleStar(for model: ModelInfo) {
         if starredModelNames.contains(model.name) {
             starredModelNames.remove(model.name)
@@ -33,16 +41,20 @@ class ModelManager: ObservableObject {
 
     func loadModels() {
         guard !isLoading else { return }
+
+        // Show cached models immediately while fetching fresh from API
+        if models.isEmpty, let cached = loadModelCache() {
+            models = cached
+        }
+
         isLoading = true
 
-        // Load models from Ollama API
-        // JSON file is used only to enrich model details
         Task {
             do {
                 let ollamaModels = try await OllamaService.shared.listModels()
                 var enrichedModels: [ModelInfo] = []
 
-                // For each API model, enrich with JSON details if available
+                // For each API model, enrich with JSON details if available (O(1) lookup)
                 for ollamaModel in ollamaModels {
                     var modelInfo = ModelInfo(
                         name: ollamaModel.name,
@@ -51,9 +63,7 @@ class ModelManager: ObservableObject {
                         capabilities: ["text-generation"]
                     )
 
-                    // Try to enrich with detailed information from local JSON
-                    if let jsonDetails = loadModelDetailsFromLocalJSON(for: ollamaModel.name) {
-                        // Use JSON details for displayName, provider, description, capabilities
+                    if let jsonDetails = localModelDetailsCache[ollamaModel.name] {
                         modelInfo.displayName = jsonDetails.displayName
                         modelInfo.provider = jsonDetails.provider
                         modelInfo.description = jsonDetails.description
@@ -73,20 +83,26 @@ class ModelManager: ObservableObject {
                     self.models = enrichedModels
                     self.isLoading = false
                 }
+                saveModelCache(enrichedModels)
             } catch {
                 print("Error loading models from API: \(error)")
-                // Clear models on error so user knows to check connection
+                // Keep cached/existing models visible — don't clear to empty on error
                 DispatchQueue.main.async {
-                    self.models = []
                     self.isLoading = false
                 }
             }
         }
     }
 
+    /// Clears current models and reloads from API. Use when user installs a new model.
+    func refreshModels() {
+        models = []
+        loadModels()
+    }
+
     func loadModelDetails(for model: ModelInfo) async throws -> ModelInfo {
-        // Use local JSON as the source of truth first
-        if let localModel = loadModelDetailsFromLocalJSON(for: model.name) {
+        // Use local JSON cache as the source of truth first
+        if let localModel = localModelDetailsCache[model.name] {
             print("Loaded model details for \(model.name) from local JSON")
             return localModel
         }
@@ -95,10 +111,8 @@ class ModelManager: ObservableObject {
         do {
             let details = try await OllamaService.shared.getModelDetails(name: model.name)
 
-            // Extract context length from model_info if available
             var contextLength: Int?
             if let modelInfo = details.model_info {
-                // Look for context length in various possible keys
                 if let contextLengthValue = modelInfo["llm.context_length"] {
                     if case .int(let value) = contextLengthValue {
                         contextLength = value
@@ -110,20 +124,11 @@ class ModelManager: ObservableObject {
                 }
             }
 
-            // Extract parameter size
             let parameterSize = details.details?.parameter_size
-
-            // Extract quantization level
             let quantizationLevel = details.details?.quantization_level
-
-            // Extract family
             let family = details.details?.family
-
-            // Extract capabilities
             let hasVision = details.capabilities?.vision
             let hasTools = (model.capabilities.contains("tool-use") || model.capabilities.contains("function-calling")) ?? false
-
-            // Extract description/license - prioritize license, then parameters, then modelfile
             let description = details.license ?? details.parameters ?? details.modelfile ?? "No description available"
 
             return ModelInfo(
@@ -141,65 +146,68 @@ class ModelManager: ObservableObject {
             )
         } catch {
             print("API call failed for model \(model.name): \(error)")
-            // Return original model if both local JSON and API fail
             return model
         }
     }
 
-    /// Loads model details from local JSON file
-    /// - Parameter modelName: The name of the model to look up
-    /// - Returns: ModelInfo with details from local JSON, or nil if not found
-    private func loadModelDetailsFromLocalJSON(for modelName: String) -> ModelInfo? {
-        // Try to get the file from the bundle first
-        if let path = Bundle.main.path(forResource: "model_details", ofType: "json") {
-            do {
-                let data = try Data(contentsOf: URL(fileURLWithPath: path))
-                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+    // MARK: - Private helpers
 
-                guard let models = json?["models"] as? [[String: Any]] else {
-                    print("Invalid format in model details JSON")
-                    return nil
-                }
-
-                // Find the model in our JSON data
-                guard let modelData = models.first(where: { ($0["name"] as? String) == modelName }) else {
-                    print("Model \(modelName) not found in local JSON data")
-                    return nil
-                }
-
-                // Extract values with proper type checking
-                let name = modelData["name"] as? String ?? modelName
-                let displayName = modelData["displayName"] as? String ?? modelName.replacingOccurrences(of: ":", with: " ")
-                let provider = modelData["provider"] as? String ?? "Unknown"
-                let capabilities = modelData["capabilities"] as? [String] ?? ["text-generation"]
-                let description = modelData["description"] as? String
-                let parameterSize = modelData["parameterSize"] as? String
-                let quantizationLevel = modelData["quantizationLevel"] as? String
-                let family = modelData["family"] as? String
-                let contextLength = modelData["contextLength"] as? Int
-                let hasVision = modelData["hasVision"] as? Bool
-                let hasTools = modelData["hasTools"] as? Bool
-
-                return ModelInfo(
-                    name: name,
-                    displayName: displayName,
-                    provider: provider,
-                    capabilities: capabilities,
-                    description: description,
-                    parameterSize: parameterSize,
-                    quantizationLevel: quantizationLevel,
-                    family: family,
-                    contextLength: contextLength,
-                    hasVision: hasVision,
-                    hasTools: hasTools
-                )
-            } catch {
-                print("Error reading or parsing local model details JSON: \(error)")
-                return nil
-            }
-        } else {
+    /// Reads and parses model_details.json once, building a name-keyed dictionary.
+    /// Called lazily on first access to localModelDetailsCache.
+    private func buildLocalModelDetailsCache() -> [String: ModelInfo] {
+        guard let path = Bundle.main.path(forResource: "model_details", ofType: "json") else {
             print("Local model details JSON file not found in bundle")
-            return nil
+            return [:]
         }
+        do {
+            let data = try Data(contentsOf: URL(fileURLWithPath: path))
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            guard let modelsArray = json?["models"] as? [[String: Any]] else {
+                print("Invalid format in model details JSON")
+                return [:]
+            }
+
+            var cache: [String: ModelInfo] = [:]
+            cache.reserveCapacity(modelsArray.count)
+
+            for modelData in modelsArray {
+                guard let name = modelData["name"] as? String else { continue }
+                let modelInfo = ModelInfo(
+                    name: name,
+                    displayName: modelData["displayName"] as? String ?? name.replacingOccurrences(of: ":", with: " "),
+                    provider: modelData["provider"] as? String ?? "Unknown",
+                    capabilities: modelData["capabilities"] as? [String] ?? ["text-generation"],
+                    description: modelData["description"] as? String,
+                    parameterSize: modelData["parameterSize"] as? String,
+                    quantizationLevel: modelData["quantizationLevel"] as? String,
+                    family: modelData["family"] as? String,
+                    contextLength: modelData["contextLength"] as? Int,
+                    hasVision: modelData["hasVision"] as? Bool,
+                    hasTools: modelData["hasTools"] as? Bool
+                )
+                cache[name] = modelInfo
+            }
+            return cache
+        } catch {
+            print("Error reading or parsing local model details JSON: \(error)")
+            return [:]
+        }
+    }
+
+    private func saveModelCache(_ models: [ModelInfo]) {
+        let url = modelCacheURL
+        DispatchQueue.global(qos: .utility).async {
+            do {
+                let data = try JSONEncoder().encode(models)
+                try data.write(to: url, options: .atomic)
+            } catch {
+                print("Error saving model cache: \(error)")
+            }
+        }
+    }
+
+    private func loadModelCache() -> [ModelInfo]? {
+        guard let data = try? Data(contentsOf: modelCacheURL) else { return nil }
+        return try? JSONDecoder().decode([ModelInfo].self, from: data)
     }
 }
