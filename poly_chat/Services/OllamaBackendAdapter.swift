@@ -18,7 +18,7 @@ class OllamaBackendAdapter: BackendAdapter {
     func sendMessage(messages: [Message], model: String) async throws -> Message {
         let chatResponse = try await ollamaService.generateChatResponse(messages: messages, model: model)
         switch chatResponse {
-        case .text(let content):
+        case .text(let content, _):
             return Message(role: .assistant, content: content)
         case .toolCalls:
             return Message(role: .assistant, content: "")

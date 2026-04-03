@@ -282,10 +282,11 @@ class ChatManager: ObservableObject {
                 }
 
                 switch chatResponse {
-                case .text(let content):
+                case .text(let content, let thinking):
                     print("[ToolLoop] Got TEXT response (\(content.count) chars) — done")
+                    if let t = thinking { print("[ToolLoop] Thinking trace: \(t.count) chars") }
                     print("[ToolLoop] ── END ────────────────────────────────────")
-                    let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date())
+                    let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date(), thinkingContent: thinking)
                     var updatedConversation = conversations[index]
                     updatedConversation.messages.append(assistantMessage)
                     updatedConversation.updatedAt = Date()
@@ -387,13 +388,13 @@ class ChatManager: ObservableObject {
                 finalResponse = try await OllamaService.shared.generateChatResponse(
                     messages: syntheticMessages, model: conversation.model.name, tools: [])
             }
-            guard case .text(let content) = finalResponse else {
+            guard case .text(let content, let thinking) = finalResponse else {
                 throw NSError(domain: "ChatError", code: -1,
                               userInfo: [NSLocalizedDescriptionKey: "Model continued tool-calling after max iterations."])
             }
             print("[ToolLoop] Synthetic prompt answer (\(content.count) chars)")
             print("[ToolLoop] ── END (synthetic) ───────────────────────────")
-            let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date())
+            let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date(), thinkingContent: thinking)
             var updatedConversationForced = conversations[index]
             updatedConversationForced.messages.append(assistantMessage)
             updatedConversationForced.updatedAt = Date()
@@ -417,12 +418,12 @@ class ChatManager: ObservableObject {
                 model: conversation.model.name,
                 tools: []
             )
-            guard case .text(let content) = fallback else {
+            guard case .text(let content, let thinking) = fallback else {
                 throw NSError(domain: "ChatError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unexpected tool call in fallback."])
             }
             print("[ToolLoop] Fallback succeeded (\(content.count) chars)")
             print("[ToolLoop] ── END (fallback) ─────────────────────")
-            let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date())
+            let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date(), thinkingContent: thinking)
             var updatedConversationFallback = conversations[index]
             updatedConversationFallback.messages.append(assistantMessage)
             updatedConversationFallback.updatedAt = Date()

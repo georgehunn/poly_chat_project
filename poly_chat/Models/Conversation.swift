@@ -41,6 +41,7 @@ struct Message: Identifiable, Codable {
     var toolCalls: [ToolCall]?   // present on assistant messages that invoke tools
     var toolCallId: String?       // present on tool-result messages (OpenAI requires correlation)
     var toolName: String?         // present on tool-result messages — the function that was called
+    var thinkingContent: String?  // reasoning trace from thinking models (DeepSeek-R1, Qwen3, etc.)
 
     enum Role: String, Codable {
         case system
@@ -49,7 +50,7 @@ struct Message: Identifiable, Codable {
         case tool
     }
 
-    init(id: UUID = UUID(), role: Role, content: String, timestamp: Date = Date(), documentAttachment: DocumentAttachment? = nil, imageAttachment: ImageAttachment? = nil, toolCalls: [ToolCall]? = nil, toolCallId: String? = nil, toolName: String? = nil) {
+    init(id: UUID = UUID(), role: Role, content: String, timestamp: Date = Date(), documentAttachment: DocumentAttachment? = nil, imageAttachment: ImageAttachment? = nil, toolCalls: [ToolCall]? = nil, toolCallId: String? = nil, toolName: String? = nil, thinkingContent: String? = nil) {
         self.id = id
         self.role = role
         self.content = content
@@ -59,6 +60,7 @@ struct Message: Identifiable, Codable {
         self.toolCalls = toolCalls
         self.toolCallId = toolCallId
         self.toolName = toolName
+        self.thinkingContent = thinkingContent
     }
 }
 

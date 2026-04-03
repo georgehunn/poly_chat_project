@@ -23,6 +23,8 @@ struct ChatView: View {
     @State private var editingMessage: Message? = nil
     @State private var showingNoToolsAlert = false
     @State private var showingNoAPIKeyAlert = false
+    @State private var showingServerErrorAlert = false
+    @State private var serverErrorMessage = ""
     @FocusState private var inputFocused: Bool
     @EnvironmentObject private var chatManager: ChatManager
 
@@ -133,6 +135,71 @@ struct ChatView: View {
     }
 
     var body: some View {
+        mainContent
+            .alert("Configuration Required", isPresented: $showingConfigAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Open Settings") { showingSettings = true }
+            } message: {
+                Text(getConfigAlertMessage())
+            }
+            .alert("Unauthorized - 401", isPresented: $showingUnauthorizedAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Check Settings") { showingSettings = true }
+                Button("Retry") { retrySend() }
+            } message: {
+                Text("The server returned 401 Unauthorized. This usually means the API key is invalid or the endpoint URL is incorrect.")
+            }
+            .alert("Unsupported URL - 404", isPresented: $showingUnsupportedURLAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Check Settings") { showingSettings = true }
+                Button("Retry") { retrySend() }
+            } message: {
+                Text("The URL is not supported. Please check if the endpoint URL is correct.")
+            }
+            .alert("Server Error", isPresented: $showingServerErrorAlert) {
+                Button("Retry") { retrySend() }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text(serverErrorMessage)
+            }
+            .alert("Document Processing Error", isPresented: $showingDocumentErrorAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(documentErrorMessage)
+            }
+            .alert("Web Search Unavailable", isPresented: $showingNoToolsAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("This model doesn't support tool use. To search the web, switch to a model with the Tools capability.")
+            }
+            .alert(hasTavilyKey ? "Invalid API Key" : "Web Search API Key Missing", isPresented: $showingNoAPIKeyAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Open Settings") { showingSettings = true }
+            } message: {
+                Text(hasTavilyKey
+                    ? "The Tavily API key was rejected. Update it in Settings."
+                    : "A Tavily API key is required for web search. Add one in Settings to enable this feature.")
+            }
+            .alert("Invalid Tavily API Key", isPresented: $chatManager.showInvalidKeyAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Open Settings") { showingSettings = true }
+            } message: {
+                Text("Your Tavily API key was rejected. Please update it in Settings.")
+            }
+            .alert("Web Search Failed", isPresented: $chatManager.showWebSearchFailedAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Open Settings") { showingSettings = true }
+            } message: {
+                Text("The web search request failed. Please check that your Tavily API key is valid in Settings.")
+            }
+            .alert("Web Search Credits Exhausted", isPresented: $chatManager.showOutOfCreditsAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Your Tavily API credits have run out. Add more credits to your account to continue using web search.")
+            }
+    }
+
+    private var mainContent: some View {
         VStack(spacing: 0) {
             if let conversation = conversation {
                 HStack {
@@ -212,71 +279,6 @@ struct ChatView: View {
                         .foregroundStyle(webSearchOK ? Color.blue : Color.red)
                 }
             }
-        }
-        .alert("Configuration Required", isPresented: $showingConfigAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Open Settings") {
-                showingSettings = true
-            }
-        } message: {
-            Text(getConfigAlertMessage())
-        }
-        .alert("Unauthorized - 401", isPresented: $showingUnauthorizedAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Check Settings") {
-                showingSettings = true
-            }
-            Button("Retry") {
-                retrySend()
-            }
-        } message: {
-            Text("The server returned 401 Unauthorized. This usually means the API key is invalid or the endpoint URL is incorrect.")
-        }
-        .alert("Unsupported URL - 404", isPresented: $showingUnsupportedURLAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Check Settings") {
-                showingSettings = true
-            }
-            Button("Retry") {
-                retrySend()
-            }
-        } message: {
-            Text("The URL is not supported. Please check if the endpoint URL is correct.")
-        }
-        .alert("Document Processing Error", isPresented: $showingDocumentErrorAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(documentErrorMessage)
-        }
-        .alert("Web Search Unavailable", isPresented: $showingNoToolsAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("This model doesn't support tool use. To search the web, switch to a model with the Tools capability.")
-        }
-        .alert(hasTavilyKey ? "Invalid API Key" : "Web Search API Key Missing", isPresented: $showingNoAPIKeyAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Open Settings") { showingSettings = true }
-        } message: {
-            Text(hasTavilyKey
-                ? "The Tavily API key was rejected. Update it in Settings."
-                : "A Tavily API key is required for web search. Add one in Settings to enable this feature.")
-        }
-        .alert("Invalid Tavily API Key", isPresented: $chatManager.showInvalidKeyAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Open Settings") { showingSettings = true }
-        } message: {
-            Text("Your Tavily API key was rejected. Please update it in Settings.")
-        }
-        .alert("Web Search Failed", isPresented: $chatManager.showWebSearchFailedAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Open Settings") { showingSettings = true }
-        } message: {
-            Text("The web search request failed. Please check that your Tavily API key is valid in Settings.")
-        }
-        .alert("Web Search Credits Exhausted", isPresented: $chatManager.showOutOfCreditsAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("Your Tavily API credits have run out. Add more credits to your account to continue using web search.")
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
@@ -396,6 +398,13 @@ struct ChatView: View {
                 defer { isLoading = false }
                 do {
                     try await chatManager.updateMessage(msgToEdit.id, to: content, in: conversation)
+                } catch let nsError as NSError where nsError.domain == "OllamaUnauthorizedError" {
+                    showingUnauthorizedAlert = true
+                } catch let nsError as NSError where nsError.domain == "OllamaUnsupportedURLError" {
+                    showingUnsupportedURLAlert = true
+                } catch let nsError as NSError where nsError.domain == "OllamaError" && nsError.code >= 500 {
+                    serverErrorMessage = "The server returned an error (\(nsError.code)). This is likely a temporary issue — please try again."
+                    showingServerErrorAlert = true
                 } catch {
                     documentErrorMessage = error.localizedDescription
                     showingDocumentErrorAlert = true
@@ -422,9 +431,69 @@ struct ChatView: View {
                 } else {
                     _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
                 }
+            } catch let nsError as NSError where nsError.domain == "OllamaUnauthorizedError" {
+                showingUnauthorizedAlert = true
+            } catch let nsError as NSError where nsError.domain == "OllamaUnsupportedURLError" {
+                showingUnsupportedURLAlert = true
+            } catch let nsError as NSError where nsError.domain == "OllamaError" && nsError.code >= 500 {
+                serverErrorMessage = "The server returned an error (\(nsError.code)). This is likely a temporary issue — please try again."
+                showingServerErrorAlert = true
             } catch {
                 documentErrorMessage = error.localizedDescription
                 showingDocumentErrorAlert = true
+            }
+        }
+    }
+}
+
+struct ThinkingDisclosureView: View {
+    let thinking: String
+    @State private var isExpanded: Bool = false
+    @State private var thinkingHeight: CGFloat = 1
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("showThinkingTraces") private var showThinkingTraces = true
+
+    var body: some View {
+        if showThinkingTraces {
+            VStack(alignment: .leading, spacing: 4) {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.caption)
+                            .foregroundColor(.purple)
+                        Text(isExpanded ? "Hide thinking" : "Show thinking")
+                            .font(.caption)
+                            .foregroundColor(.purple)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                            .foregroundColor(.purple.opacity(0.7))
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .animation(.easeInOut(duration: 0.2), value: isExpanded)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                if isExpanded {
+                    HStack(spacing: 0) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.purple.opacity(0.4))
+                            .frame(width: 3)
+                        MarkdownWebView(
+                            markdown: thinking,
+                            isDarkMode: colorScheme == .dark,
+                            calculatedHeight: $thinkingHeight
+                        )
+                        .frame(height: max(thinkingHeight, 20))
+                        .padding(.leading, 10)
+                        .padding(.vertical, 6)
+                    }
+                    .background(Color.purple.opacity(0.05))
+                    .cornerRadius(8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
         }
     }
@@ -457,6 +526,11 @@ struct MessageView: View {
                 }
 
                 VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
+                if let thinking = message.thinkingContent, message.role == .assistant {
+                    ThinkingDisclosureView(thinking: thinking)
+                        .frame(maxWidth: bubbleWidth(), alignment: .leading)
+                }
+
                 if let attachment = message.documentAttachment {
                     DocumentAttachmentView(attachment: attachment)
                         .padding(.bottom, 4)

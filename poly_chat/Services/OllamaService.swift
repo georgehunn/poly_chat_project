@@ -7,6 +7,29 @@ class OllamaService {
 
     private init() {}
 
+    private lazy var session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 90
+        config.timeoutIntervalForResource = 300
+        return URLSession(configuration: config)
+    }()
+
+    private func dataWithRetry(for request: URLRequest, retries: Int = 3) async throws -> (Data, URLResponse) {
+        var lastError: Error?
+        for attempt in 1...retries {
+            do {
+                return try await session.data(for: request)
+            } catch {
+                lastError = error
+                print("[OllamaService] Attempt \(attempt) failed: \(error)")
+                if attempt < retries {
+                    try await Task.sleep(nanoseconds: UInt64(1_000_000_000 * attempt))
+                }
+            }
+        }
+        throw lastError!
+    }
+
     /// Validation result for connection testing
     enum ValidationError: Error {
         case noEndpoint
@@ -76,6 +99,7 @@ class OllamaService {
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
+        request.timeoutInterval = 30
 
         // Add API key if provided
         if let apiKey = apiKey, !apiKey.isEmpty {
@@ -83,8 +107,12 @@ class OllamaService {
             request.setValue(authValue, forHTTPHeaderField: "Authorization")
         }
 
+        let validationConfig = URLSessionConfiguration.default
+        validationConfig.timeoutIntervalForRequest = 30
+        let validationSession = URLSession(configuration: validationConfig)
+
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await validationSession.data(for: request)
 
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
@@ -200,9 +228,10 @@ class OllamaService {
         }
 
         request.httpBody = jsonData
+        request.timeoutInterval = 90
 
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await dataWithRetry(for: request)
 
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
                 let statusString = HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)
@@ -325,10 +354,17 @@ class OllamaService {
         }
 
         request.httpBody = jsonData
+        request.timeoutInterval = 90
 
         do {
             print("Sending request to Ollama...")
-            let (data, response) = try await URLSession.shared.data(for: request)
+            #if DEBUG
+            let start = Date()
+            let (data, response) = try await dataWithRetry(for: request)
+            print("[OllamaService] Chat request took \(String(format: "%.1f", Date().timeIntervalSince(start)))s")
+            #else
+            let (data, response) = try await dataWithRetry(for: request)
+            #endif
 
             // Print response info for debugging
             if let httpResponse = response as? HTTPURLResponse {
@@ -402,18 +438,27 @@ class OllamaService {
             do {
                 let ollamaResponse = try JSONDecoder().decode(OllamaChatResponse.self, from: data)
                 var content = ollamaResponse.message.content
-                // Some reasoning models (e.g. kimi-k2.5) put the final answer in "thinking"
-                // and leave "content" empty. Fall back to "thinking" when content is blank.
-                if content.isEmpty,
-                   let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+
+                // Always extract the thinking field if present (reasoning models like DeepSeek-R1, Qwen3)
+                var thinkingContent: String? = nil
+                if let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let messageDict = jsonObject["message"] as? [String: Any],
                    let thinking = messageDict["thinking"] as? String,
                    !thinking.isEmpty {
+                    thinkingContent = thinking
+                }
+
+                // Fallback: some models (e.g. kimi-k2.5) put the answer in "thinking" and leave "content" empty
+                if content.isEmpty, let thinking = thinkingContent {
                     print("[OllamaService] content empty — using thinking field as response (\(thinking.count) chars)")
                     content = thinking
+                    thinkingContent = nil  // avoid showing it twice
+                } else if thinkingContent != nil {
+                    print("[OllamaService] thinking field present (\(thinkingContent!.count) chars)")
                 }
+
                 print("Successfully received response: \(content)")
-                return .text(content)
+                return .text(content, thinking: thinkingContent)
             } catch {
                 print("Failed to decode as OllamaChatResponse: \(error)")
                 if let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -421,9 +466,10 @@ class OllamaService {
                     let content = messageDict["content"] as? String ?? ""
                     let thinking = messageDict["thinking"] as? String ?? ""
                     let resolved = content.isEmpty ? thinking : content
+                    let thinkingToShow: String? = (!content.isEmpty && !thinking.isEmpty) ? thinking : nil
                     if !resolved.isEmpty {
                         print("Extracted content directly: \(resolved)")
-                        return .text(resolved)
+                        return .text(resolved, thinking: thinkingToShow)
                     }
                 }
                 throw error
@@ -473,7 +519,7 @@ class OllamaService {
 
         do {
             print("Fetching models from Ollama...")
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await session.data(for: request)
 
             // Print response info for debugging
             if let httpResponse = response as? HTTPURLResponse {
@@ -521,7 +567,7 @@ class OllamaService {
 
         do {
             print("Fetching model details from Ollama...")
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await session.data(for: request)
 
             // Print response info for debugging
             if let httpResponse = response as? HTTPURLResponse {
@@ -560,7 +606,7 @@ class OllamaService {
 
 /// Unified response type for chat APIs — either plain text or a list of tool calls to execute.
 enum ChatServiceResponse {
-    case text(String)
+    case text(String, thinking: String?)
     case toolCalls([ToolCall])
 }
 

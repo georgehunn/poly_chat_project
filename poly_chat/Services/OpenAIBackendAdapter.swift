@@ -19,7 +19,7 @@ class OpenAIBackendAdapter: BackendAdapter {
     func sendMessage(messages: [Message], model: String) async throws -> Message {
         let chatResponse = try await generateChatResponseWithTools(messages: messages, model: model, tools: [])
         switch chatResponse {
-        case .text(let content):
+        case .text(let content, _):
             return Message(role: .assistant, content: content)
         case .toolCalls:
             return Message(role: .assistant, content: "")
@@ -141,13 +141,17 @@ class OpenAIBackendAdapter: BackendAdapter {
                 }
 
                 if let content = messageDict["content"] as? String {
-                    return .text(content)
+                    let thinking = messageDict["thinking"] as? String
+                    let thinkingContent: String? = (thinking != nil && !thinking!.isEmpty) ? thinking : nil
+                    return .text(content, thinking: thinkingContent)
                 }
             }
 
             // Fallback: Codable decode
             let openAIResponse = try JSONDecoder().decode(OpenAIChatResponse.self, from: data)
-            return .text(openAIResponse.choices[0].message.content)
+            let msg = openAIResponse.choices[0].message
+            let thinkingContent: String? = msg.thinking.flatMap { $0.isEmpty ? nil : $0 }
+            return .text(msg.content, thinking: thinkingContent)
         } catch let urlError as URLError {
             throw urlError
         } catch {
@@ -175,6 +179,7 @@ struct OpenAIChatResponse: Codable {
     struct Message: Codable {
         let content: String
         let role: String
+        let thinking: String?
     }
 
     struct Usage: Codable {

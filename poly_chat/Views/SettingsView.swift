@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var apiKey = ""
     @State private var tavilyAPIKey = ""
     @AppStorage("darkMode") private var darkMode = false
+    @AppStorage("showThinkingTraces") private var showThinkingTraces = true
     @State private var systemPrompt = ""
     @State private var showingDeleteAlert = false
     @State private var showingExportView = false
@@ -85,6 +86,7 @@ struct SettingsView: View {
                 Section(header: Text("Appearance")) {
                     Toggle("Dark Mode", isOn: $darkMode)
                         .onChange(of: darkMode) { _ in saveSettings() }
+                    Toggle("Show thinking traces", isOn: $showThinkingTraces)
                 }
 
                 Section(header: Text("Default System Prompt")) {
