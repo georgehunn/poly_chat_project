@@ -36,7 +36,7 @@ struct SettingsView: View {
                             saveSettings()
                             ollamaStatus = .idle
                         }
-                    TextField("API Key (optional)", text: $apiKey)
+                    SecureField("API Key (optional)", text: $apiKey)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .textContentType(.password)
                         .disableAutocorrection(true)
