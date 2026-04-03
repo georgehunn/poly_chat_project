@@ -15,8 +15,6 @@ struct SettingsView: View {
     @State private var systemPrompt = ""
     @State private var showingDeleteAlert = false
     @State private var showingExportView = false
-    @State private var exportedData: Data?
-    @State private var ollamaStatus: ValidationState = .idle
     @State private var tavilyStatus: ValidationState = .idle
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject private var chatManager: ChatManager
@@ -29,43 +27,23 @@ struct SettingsView: View {
             Form {
                 Section(header: Text("Ollama Configuration")) {
                     TextField("Endpoint", text: $ollamaEndpoint)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .disableAutocorrection(true)
+                        .autocapitalization(.none)
                         .submitLabel(.done)
                         .onSubmit { saveSettings() }
-                        .onChange(of: ollamaEndpoint) { _ in
-                            saveSettings()
-                            ollamaStatus = .idle
-                        }
-                    SecureField("API Key (optional)", text: $apiKey)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .onChange(of: ollamaEndpoint) { _ in saveSettings() }
+                    SecureField("API Key", text: $apiKey)
                         .textContentType(.password)
                         .disableAutocorrection(true)
                         .submitLabel(.done)
                         .onSubmit { saveSettings() }
-                        .onChange(of: apiKey) { _ in
-                            saveSettings()
-                            ollamaStatus = .idle
-                        }
-                    Button("Test Connection") {
-                        saveSettings()
-                        ollamaStatus = .testing
-                        Task {
-                            do {
-                                try await OllamaService.validateConnection(
-                                    endpoint: ollamaEndpoint,
-                                    apiKey: apiKey.isEmpty ? nil : apiKey
-                                )
-                                ollamaStatus = .success("Connected")
-                            } catch {
-                                ollamaStatus = .failure(error.localizedDescription)
-                            }
-                        }
-                    }
-                    .disabled(ollamaEndpoint.isEmpty || {
-                        if case .testing = ollamaStatus { return true }
-                        return false
-                    }())
-                    statusRow(ollamaStatus)
+                        .onChange(of: apiKey) { _ in saveSettings() }
+                    Link("Get an Ollama API key at ollama.com", destination: URL(string: "https://ollama.com")!)
+                        .font(.caption)
+                        .foregroundColor(.accentColor)
+                    Text("Ollama lets you run large language models locally or access hosted models. An API key is only required for remote/hosted Ollama instances.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
 
                 Section(header: Text("Web Search")) {
@@ -121,7 +99,7 @@ struct SettingsView: View {
 
                 Section(header: Text("Data Management")) {
                     Button("Export Conversations") {
-                        exportConversations()
+                        showingExportView = true
                     }
                     Button("Delete All Conversations") {
                         showingDeleteAlert = true
@@ -150,9 +128,7 @@ struct SettingsView: View {
                 Text("Are you sure you want to delete all conversations? This cannot be undone.")
             }
             .sheet(isPresented: $showingExportView) {
-                if let data = exportedData {
-                    SimpleShareView(data: data)
-                }
+                ExportConversationsView(conversations: chatManager.conversations)
             }
             .onAppear { loadSettings() }
         }
@@ -202,19 +178,6 @@ struct SettingsView: View {
         UserDefaults.standard.set(systemPrompt, forKey: "systemPrompt")
 
         print("Saved settings - Endpoint: \(normalizedEndpoint), API Key present: \(!apiKey.isEmpty)")
-    }
-
-    private func exportConversations() {
-        let conversations = chatManager.conversations
-        do {
-            let data = try JSONEncoder().encode(conversations)
-            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("polychat_export.json")
-            try data.write(to: tempURL)
-            exportedData = data
-            showingExportView = true
-        } catch {
-            print("Error exporting conversations: \(error)")
-        }
     }
 
     private func deleteAllConversations() {

@@ -191,6 +191,18 @@ struct ChatView: View {
             }
         }
         .navigationTitle(conversation?.title ?? "Chat")
+        .onAppear {
+            chatManager.errorMessage = nil
+        }
+        .onChange(of: chatManager.errorMessage) { newValue in
+            guard newValue != nil else { return }
+            Task {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                await MainActor.run {
+                    chatManager.errorMessage = nil
+                }
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {

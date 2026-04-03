@@ -179,7 +179,7 @@ class ChatManager: ObservableObject {
         "type": "function",
         "function": [
             "name": "get_current_date",
-            "description": "Returns the current date, time, and timezone. Always call this before answering any question that depends on today's date, the current time, recent events, or the weather.",
+            "description": "Returns the current date, time, and timezone. Call this when the user's question depends on today's date, the current time, recent events, or the weather.",
             "parameters": [
                 "type": "object",
                 "properties": [:] as [String: Any],
@@ -227,7 +227,8 @@ class ChatManager: ObservableObject {
         }
 
         var workingMessages = conversation.messages
-        let maxToolIterations = 5
+        var collectedSearchResults: [String] = []
+        let maxToolIterations = 3
 
         let webSearchEnabled = tools.contains(where: { ($0["function"] as? [String: Any])?["name"] as? String == "web_search" })
         print("[ToolLoop] ── START ──────────────────────────────────")
@@ -238,7 +239,27 @@ class ChatManager: ObservableObject {
 
         do {
             for iteration in 0..<maxToolIterations {
+                // On the final iteration strip tools so well-behaved models are forced to
+                // synthesize a text answer from whatever they've gathered so far.
+                let isLastIteration = iteration == maxToolIterations - 1
+                let iterationTools = isLastIteration ? [[String: Any]]() : tools
+                if isLastIteration && !tools.isEmpty {
+                    let searchCount = collectedSearchResults.count
+                    let dateCount = workingMessages.filter { $0.toolName == "get_current_date" }.count
+                    print("[ToolLoop] Final iteration — stripping tools to force text answer")
+                    print("[ToolLoop] Context summary: \(searchCount) search result(s), \(dateCount) date result(s)")
+                }
+                // Log A: show the role/type sequence the model will receive
+                let contextDesc = workingMessages.map { msg -> String in
+                    if msg.role == .assistant, let calls = msg.toolCalls, !calls.isEmpty {
+                        return "asst(\(calls.map { $0.name }.joined(separator: ",")))"
+                    } else if msg.role == .tool {
+                        return "tool(\(msg.toolCallId?.prefix(8) ?? "?"):\(msg.toolName ?? "?"))"
+                    }
+                    return msg.role.rawValue
+                }.joined(separator: " → ")
                 print("[ToolLoop] Iteration \(iteration + 1)/\(maxToolIterations) — sending \(workingMessages.count) message(s)")
+                print("[ToolLoop] Context: \(contextDesc)")
 
                 let chatResponse: ChatServiceResponse
 
@@ -249,14 +270,14 @@ class ChatManager: ObservableObject {
                     chatResponse = try await adapter.generateChatResponseWithTools(
                         messages: workingMessages,
                         model: conversation.model.name,
-                        tools: tools
+                        tools: iterationTools
                     )
                 } else {
                     print("[ToolLoop] Routing to OllamaService")
                     chatResponse = try await OllamaService.shared.generateChatResponse(
                         messages: workingMessages,
                         model: conversation.model.name,
-                        tools: tools
+                        tools: iterationTools
                     )
                 }
 
@@ -268,8 +289,11 @@ class ChatManager: ObservableObject {
                     var updatedConversation = conversations[index]
                     updatedConversation.messages.append(assistantMessage)
                     updatedConversation.updatedAt = Date()
-                    conversations[index] = updatedConversation
-                    storageService.saveConversations(conversations)
+                    let savedConversation = updatedConversation
+                    DispatchQueue.main.async {
+                        self.conversations[index] = savedConversation
+                        self.storageService.saveConversations(self.conversations)
+                    }
 
                     if needsTitleUpdate(conversation: updatedConversation) {
                         Task { [weak self] in
@@ -280,11 +304,20 @@ class ChatManager: ObservableObject {
 
                 case .toolCalls(let toolCalls):
                     print("[ToolLoop] Got TOOL CALLS: \(toolCalls.map { "\($0.name)(id:\($0.id.prefix(8)))" }.joined(separator: ", "))")
+
+                    // Log B: detect repeated calls with identical arguments
+                    let prevCalls = workingMessages.compactMap { $0.toolCalls }.flatMap { $0 }
+                    for call in toolCalls {
+                        if prevCalls.contains(where: { $0.name == call.name && $0.arguments == call.arguments }) {
+                            print("[ToolLoop] ⚠️ REPEAT CALL: \(call.name) called again with same arguments: \(call.arguments)")
+                        }
+                    }
+
                     let assistantToolMsg = Message(id: UUID(), role: .assistant, content: "", timestamp: Date(), toolCalls: toolCalls)
                     workingMessages.append(assistantToolMsg)
 
                     for call in toolCalls {
-                        activeToolName = call.name
+                        DispatchQueue.main.async { self.activeToolName = call.name }
                         let result: String
                         if call.name == "get_current_date" {
                             let formatter = DateFormatter()
@@ -300,6 +333,7 @@ class ChatManager: ObservableObject {
                             do {
                                 result = try await WebSearchService.shared.search(query: query)
                                 print("[ToolLoop] Search result: \(result.count) chars")
+                                collectedSearchResults.append(result)
                                 DispatchQueue.main.async { self.tavilyKeyInvalid = false }
                             } catch WebSearchService.WebSearchError.invalidKey {
                                 print("[ToolLoop] Search FAILED — invalid API key")
@@ -321,18 +355,60 @@ class ChatManager: ObservableObject {
                             print("[ToolLoop] Unknown tool requested: \(call.name)")
                             result = "Unknown tool: \(call.name)"
                         }
-                        activeToolName = nil
-                        let toolResultMsg = Message(id: UUID(), role: .tool, content: result, timestamp: Date(), toolCallId: call.id)
+                        DispatchQueue.main.async { self.activeToolName = nil }
+                        // Log C: confirm result is correlated to the call that requested it
+                        print("[ToolLoop] Tool result: \(call.id.prefix(12)) → \(call.name) → \(result.count) chars")
+                        let toolResultMsg = Message(id: UUID(), role: .tool, content: result, timestamp: Date(), toolCallId: call.id, toolName: call.name)
                         workingMessages.append(toolResultMsg)
                     }
                 }
             }
 
-            print("[ToolLoop] ERROR — exceeded max \(maxToolIterations) iterations")
-            throw NSError(domain: "ChatError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Exceeded maximum tool-call iterations."])
+            // Model kept tool-calling without answering even after exhausting all iterations.
+            // Sending the same tool-heavy history again won't help — some models (e.g. nemotron)
+            // ignore tools:[] and keep generating tool calls when they see role:tool messages.
+            // Instead, build a fresh single-turn prompt that embeds all gathered search results
+            // as plain text context. This breaks the tool-loop pattern completely.
+            print("[ToolLoop] Max iterations reached — rebuilding prompt with search context")
+            let userQuery = conversation.messages.last(where: { $0.role == .user })?.content ?? ""
+            let searchResults = collectedSearchResults.joined(separator: "\n\n---\n\n")
+            let syntheticContent = searchResults.isEmpty
+                ? userQuery
+                : "\(userQuery)\n\nHere is information gathered from web searches:\n\n\(searchResults)\n\nPlease answer based on the above information."
+            let syntheticMessages = [Message(id: UUID(), role: .user, content: syntheticContent, timestamp: Date())]
+
+            let finalResponse: ChatServiceResponse
+            if let provider = ProviderManager.shared.getActiveProvider(),
+               provider.providerType == .openAI || provider.providerType == .grok {
+                let adapter = OpenAIBackendAdapter(providerConfig: provider)
+                finalResponse = try await adapter.generateChatResponseWithTools(
+                    messages: syntheticMessages, model: conversation.model.name, tools: [])
+            } else {
+                finalResponse = try await OllamaService.shared.generateChatResponse(
+                    messages: syntheticMessages, model: conversation.model.name, tools: [])
+            }
+            guard case .text(let content) = finalResponse else {
+                throw NSError(domain: "ChatError", code: -1,
+                              userInfo: [NSLocalizedDescriptionKey: "Model continued tool-calling after max iterations."])
+            }
+            print("[ToolLoop] Synthetic prompt answer (\(content.count) chars)")
+            print("[ToolLoop] ── END (synthetic) ───────────────────────────")
+            let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date())
+            var updatedConversationForced = conversations[index]
+            updatedConversationForced.messages.append(assistantMessage)
+            updatedConversationForced.updatedAt = Date()
+            let savedForced = updatedConversationForced
+            DispatchQueue.main.async {
+                self.conversations[index] = savedForced
+                self.storageService.saveConversations(self.conversations)
+            }
+            if needsTitleUpdate(conversation: updatedConversationForced) {
+                Task { [weak self] in await self?.updateTitleForConversation(updatedConversationForced) }
+            }
+            return content
 
         } catch let nsError as NSError where nsError.localizedDescription.contains("thought_signature") {
-            activeToolName = nil
+            DispatchQueue.main.async { self.activeToolName = nil }
             // Some models (e.g. Gemini via Ollama) require thought_signature in tool calls but don't
             // return it in responses — Ollama strips it. Retry the original messages without tools.
             print("[ToolLoop] thought_signature incompatibility — retrying without tools")
@@ -347,29 +423,34 @@ class ChatManager: ObservableObject {
             print("[ToolLoop] Fallback succeeded (\(content.count) chars)")
             print("[ToolLoop] ── END (fallback) ─────────────────────")
             let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date())
-            var updatedConversation = conversations[index]
-            updatedConversation.messages.append(assistantMessage)
-            updatedConversation.updatedAt = Date()
-            conversations[index] = updatedConversation
-            storageService.saveConversations(conversations)
-            if needsTitleUpdate(conversation: updatedConversation) {
-                Task { [weak self] in await self?.updateTitleForConversation(updatedConversation) }
+            var updatedConversationFallback = conversations[index]
+            updatedConversationFallback.messages.append(assistantMessage)
+            updatedConversationFallback.updatedAt = Date()
+            let savedFallback = updatedConversationFallback
+            DispatchQueue.main.async {
+                self.conversations[index] = savedFallback
+                self.storageService.saveConversations(self.conversations)
+            }
+            if needsTitleUpdate(conversation: updatedConversationFallback) {
+                Task { [weak self] in await self?.updateTitleForConversation(updatedConversationFallback) }
             }
             return content
 
         } catch {
-            activeToolName = nil
             print("[ToolLoop] CAUGHT ERROR: \(error)")
             print("[ToolLoop] ── END (error) ──────────────────────────")
             let errorContent = "Error: \(error.localizedDescription)"
-            let errorMessage = Message(id: UUID(), role: .assistant, content: errorContent, timestamp: Date())
-            var updatedConversation = conversations[index]
-            updatedConversation.messages.append(errorMessage)
-            updatedConversation.updatedAt = Date()
-            conversations[index] = updatedConversation
-            storageService.saveConversations(conversations)
-
-            self.errorMessage = error.localizedDescription
+            let errorMsg = Message(id: UUID(), role: .assistant, content: errorContent, timestamp: Date())
+            var errorConversation = conversations[index]
+            errorConversation.messages.append(errorMsg)
+            errorConversation.updatedAt = Date()
+            let savedError = errorConversation
+            DispatchQueue.main.async {
+                self.activeToolName = nil
+                self.conversations[index] = savedError
+                self.storageService.saveConversations(self.conversations)
+                self.errorMessage = error.localizedDescription
+            }
             throw error
         }
     }

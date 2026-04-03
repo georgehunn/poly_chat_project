@@ -77,23 +77,21 @@ class OllamaService {
 
         // Add API key if provided
         if let apiKey = apiKey, !apiKey.isEmpty {
-            request.setValue(apiKey, forHTTPHeaderField: "Authorization")
+            let authValue = apiKey.hasPrefix("Bearer ") ? apiKey : "Bearer \(apiKey)"
+            request.setValue(authValue, forHTTPHeaderField: "Authorization")
         }
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
 
             if let httpResponse = response as? HTTPURLResponse {
-                if httpResponse.statusCode == 401 {
+                if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
                     throw ValidationError.unauthorized
                 } else if httpResponse.statusCode >= 400 {
                     throw ValidationError.connectionFailed(NSError(domain: "OllamaError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server returned \(httpResponse.statusCode)"]))
                 }
             }
 
-            // If we get here, connection succeeded
-            // Response should be a JSON array of models (or empty array)
-            _ = try JSONSerialization.jsonObject(with: data, options: [])
         } catch {
             if let urlError = error as? URLError {
                 throw ValidationError.connectionFailed(urlError)
@@ -193,7 +191,7 @@ class OllamaService {
         let secureStorage = SecureStorageService()
         if let apiKey = secureStorage.getAPIKey(),
            !apiKey.isEmpty {
-            request.setValue(apiKey, forHTTPHeaderField: "Authorization")
+            request.setValue(apiKey.hasPrefix("Bearer ") ? apiKey : "Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
@@ -277,6 +275,7 @@ class OllamaService {
                         let argsObj = (try? JSONSerialization.jsonObject(with: Data(call.arguments.utf8))) ?? [:]
                         var callDict: [String: Any] = [
                             "id": call.id,
+                            "type": "function",
                             "function": ["name": call.name, "arguments": argsObj]
                         ]
                         // Thinking models (Qwen3, DeepSeek-R1, etc.) require thought_signature echoed back
@@ -285,11 +284,16 @@ class OllamaService {
                         }
                         return callDict
                     }
-                    return ["role": "assistant", "content": message.content, "tool_calls": ollaCalls]
+                    var assistantDict: [String: Any] = ["role": "assistant", "tool_calls": ollaCalls]
+                    if !message.content.isEmpty { assistantDict["content"] = message.content }
+                    return assistantDict
                 }
                 return ["role": "assistant", "content": message.content]
             case .tool:
-                return ["role": "tool", "content": message.content]
+                var dict: [String: Any] = ["role": "tool", "content": message.content]
+                if let id = message.toolCallId { dict["tool_call_id"] = id }
+                if let name = message.toolName { dict["name"] = name }
+                return dict
             }
         }
 
@@ -312,7 +316,7 @@ class OllamaService {
         let secureStorage = SecureStorageService()
         if let apiKey = secureStorage.getAPIKey(),
            !apiKey.isEmpty {
-            request.setValue(apiKey, forHTTPHeaderField: "Authorization")
+            request.setValue(apiKey.hasPrefix("Bearer ") ? apiKey : "Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             print("Using API key for authentication")
         }
 
@@ -398,15 +402,30 @@ class OllamaService {
             // Try Codable decode for regular text responses
             do {
                 let ollamaResponse = try JSONDecoder().decode(OllamaChatResponse.self, from: data)
-                print("Successfully received response: \(ollamaResponse.message.content)")
-                return .text(ollamaResponse.message.content)
+                var content = ollamaResponse.message.content
+                // Some reasoning models (e.g. kimi-k2.5) put the final answer in "thinking"
+                // and leave "content" empty. Fall back to "thinking" when content is blank.
+                if content.isEmpty,
+                   let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let messageDict = jsonObject["message"] as? [String: Any],
+                   let thinking = messageDict["thinking"] as? String,
+                   !thinking.isEmpty {
+                    print("[OllamaService] content empty — using thinking field as response (\(thinking.count) chars)")
+                    content = thinking
+                }
+                print("Successfully received response: \(content)")
+                return .text(content)
             } catch {
                 print("Failed to decode as OllamaChatResponse: \(error)")
                 if let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let messageDict = jsonObject["message"] as? [String: Any],
-                   let content = messageDict["content"] as? String {
-                    print("Extracted content directly: \(content)")
-                    return .text(content)
+                   let messageDict = jsonObject["message"] as? [String: Any] {
+                    let content = messageDict["content"] as? String ?? ""
+                    let thinking = messageDict["thinking"] as? String ?? ""
+                    let resolved = content.isEmpty ? thinking : content
+                    if !resolved.isEmpty {
+                        print("Extracted content directly: \(resolved)")
+                        return .text(resolved)
+                    }
                 }
                 throw error
             }
@@ -451,7 +470,7 @@ class OllamaService {
         let secureStorage = SecureStorageService()
         if let apiKey = secureStorage.getAPIKey(),
            !apiKey.isEmpty {
-            request.setValue(apiKey, forHTTPHeaderField: "Authorization")
+            request.setValue(apiKey.hasPrefix("Bearer ") ? apiKey : "Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
 
         do {
@@ -493,7 +512,7 @@ class OllamaService {
         let secureStorage = SecureStorageService()
         if let apiKey = secureStorage.getAPIKey(),
            !apiKey.isEmpty {
-            request.setValue(apiKey, forHTTPHeaderField: "Authorization")
+            request.setValue(apiKey.hasPrefix("Bearer ") ? apiKey : "Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {

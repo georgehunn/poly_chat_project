@@ -40,6 +40,7 @@ struct Message: Identifiable, Codable {
     let imageAttachment: ImageAttachment?
     var toolCalls: [ToolCall]?   // present on assistant messages that invoke tools
     var toolCallId: String?       // present on tool-result messages (OpenAI requires correlation)
+    var toolName: String?         // present on tool-result messages — the function that was called
 
     enum Role: String, Codable {
         case system
@@ -48,7 +49,7 @@ struct Message: Identifiable, Codable {
         case tool
     }
 
-    init(id: UUID = UUID(), role: Role, content: String, timestamp: Date = Date(), documentAttachment: DocumentAttachment? = nil, imageAttachment: ImageAttachment? = nil, toolCalls: [ToolCall]? = nil, toolCallId: String? = nil) {
+    init(id: UUID = UUID(), role: Role, content: String, timestamp: Date = Date(), documentAttachment: DocumentAttachment? = nil, imageAttachment: ImageAttachment? = nil, toolCalls: [ToolCall]? = nil, toolCallId: String? = nil, toolName: String? = nil) {
         self.id = id
         self.role = role
         self.content = content
@@ -57,6 +58,7 @@ struct Message: Identifiable, Codable {
         self.imageAttachment = imageAttachment
         self.toolCalls = toolCalls
         self.toolCallId = toolCallId
+        self.toolName = toolName
     }
 }
 
