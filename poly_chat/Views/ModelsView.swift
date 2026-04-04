@@ -14,7 +14,7 @@ struct ModelsView: View {
             List {
                 if !modelManager.models.isEmpty {
                     Section(header: Text("Information")) {
-                        Text("Tap on any model below to view detailed information including technical specifications, capabilities, and descriptions.")
+                        Text("Tap on any model below to view detailed information including technical specifications, capabilities, and descriptions. Swipe right to star your favorite models for quick access later.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)

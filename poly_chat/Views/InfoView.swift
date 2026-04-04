@@ -37,27 +37,52 @@ struct InfoView: View {
 
                     // API Key Information
                     InfoSectionView(title: "API Key Information") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Poly_Chat works with models that are accessable via API, Ollama has a large amount of opensource models that can be accessed for free if you create an account.")
-                                .padding(.bottom, 5)
+                        VStack(alignment: .leading, spacing: 14) {
 
-                            Text("To use Ollama servers:")
-                                .fontWeight(.semibold)
-                                .padding(.top, 5)
+                            Text("PolyChat connects to external services using API keys. Your data stays on your device — API keys are stored securely in your keychain.")
+                                .padding(.bottom, 4)
 
-                            Text("1. Set up Ollama account and create an API key")
-                                .padding(.vertical, 2)
-                            Text("2. enter the url https://ollama.com/api in the url field in settings")
-                                .padding(.vertical, 2)
-                            Text("3. Add your API key in the API key field in settings")
-                                .padding(.vertical, 2)
+                            // MARK: - Ollama Section
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Ollama (Models)")
+                                    .font(.headline)
 
-                            Text("Note: API keys are stored securely in your device's keychain.")
+                                Text("Access a wide range of open-source models hosted on Ollama Cloud. Supports chat, tools, and multi-turn conversations.")
+                                    .foregroundColor(.secondary)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("1. Create an Ollama account")
+                                    Text("2. Generate an API key")
+                                    Text("3. Set URL to https://ollama.com/api")
+                                    Text("4. Paste your API key in Settings")
+                                }
+                                .padding(.top, 4)
+                            }
+
+                            Divider().padding(.vertical, 4)
+
+                            // MARK: - Tavily Section
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Tavily (Web Search)")
+                                    .font(.headline)
+
+                                Text("Enable real-time web search for your chats using Tavily’s API. A free tier is available.")
+                                    .foregroundColor(.secondary)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("1. Create an account at tavily.com")
+                                    Text("2. Generate an API key")
+                                    Text("3. Add your API key in Settings")
+                                }
+                                .padding(.top, 4)
+                            }
+
+                            Text("Note: API keys are stored securely in your device’s keychain.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                                .padding(.top, 5)
-                        }
+                                .padding(.top, 6)
                     }
+}
 
                     // Ollama Information
                     InfoSectionView(title: "About Poly_Chat") {
