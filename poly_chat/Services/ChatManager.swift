@@ -15,8 +15,10 @@ class ChatManager: ObservableObject {
     @Published var tavilyKeyInvalid: Bool = UserDefaults.standard.bool(forKey: "tavilyKeyInvalid") {
         didSet { UserDefaults.standard.set(tavilyKeyInvalid, forKey: "tavilyKeyInvalid") }
     }
+    @Published var sendError: NSError? = nil
 
     private let storageService = LocalStorageService()
+    private var activeSendTask: Task<Void, Never>? = nil
 
     init() {
         loadConversations()
@@ -130,6 +132,52 @@ class ChatManager: ObservableObject {
         let base64 = jpegData.base64EncodedString()
         let imageAttachment = ImageAttachment(base64Data: base64, mimeType: "image/jpeg")
         return try await sendMessage(message, in: conversation, imageAttachment: imageAttachment)
+    }
+
+    /// Starts a send in a Task owned by ChatManager so it survives view navigation.
+    func startSendMessage(
+        _ message: String,
+        in conversation: Conversation,
+        fileURL: URL? = nil,
+        image: UIImage? = nil,
+        onSuccess: (@MainActor () -> Void)? = nil
+    ) {
+        activeSendTask?.cancel()
+        sendError = nil
+        activeSendTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.isLoading = true
+
+            // Ask iOS for extra background execution time so the request survives
+            // the user switching away from the app (grants up to ~3 minutes).
+            var bgTaskID = UIBackgroundTaskIdentifier.invalid
+            bgTaskID = UIApplication.shared.beginBackgroundTask {
+                // Expiration handler: iOS is about to suspend the process.
+                // End the task to avoid being killed.
+                UIApplication.shared.endBackgroundTask(bgTaskID)
+                bgTaskID = .invalid
+            }
+
+            defer {
+                self.isLoading = false
+                if bgTaskID != .invalid {
+                    UIApplication.shared.endBackgroundTask(bgTaskID)
+                }
+            }
+
+            do {
+                if let fileURL {
+                    _ = try await self.sendMessage(message, in: conversation, withPDFAt: fileURL)
+                } else if let image {
+                    _ = try await self.sendMessage(message, in: conversation, withImage: image)
+                } else {
+                    _ = try await self.sendMessage(message, in: conversation)
+                }
+                onSuccess?()
+            } catch {
+                self.sendError = error as NSError
+            }
+        }
     }
 
     func sendMessage(_ message: String, in conversation: Conversation, with documentAttachment: DocumentAttachment? = nil, imageAttachment: ImageAttachment? = nil) async throws -> String {

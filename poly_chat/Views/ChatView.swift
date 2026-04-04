@@ -8,7 +8,6 @@ import WebKit
 struct ChatView: View {
     let conversationId: UUID
     @State private var messageText = ""
-    @State private var isLoading = false
     @State private var showingConfigAlert = false
     @State private var showingUnauthorizedAlert = false
     @State private var showingUnsupportedURLAlert = false
@@ -96,7 +95,7 @@ struct ChatView: View {
                     Image(systemName: "paperclip")
                         .foregroundColor(.blue)
                 }
-                .disabled(isLoading)
+                .disabled(chatManager.isLoading)
                 .padding(.trailing, 4)
 
                 if conversation.model.hasVision == true {
@@ -104,7 +103,7 @@ struct ChatView: View {
                         Image(systemName: "photo")
                             .foregroundColor(.blue)
                     }
-                    .disabled(isLoading)
+                    .disabled(chatManager.isLoading)
                     .padding(.trailing, 4)
                 }
 
@@ -118,13 +117,13 @@ struct ChatView: View {
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                     )
-                    .disabled(isLoading)
+                    .disabled(chatManager.isLoading)
 
                 Button(action: sendMessage) {
                     Image(systemName: "paperplane.fill")
                         .foregroundColor(.blue)
                 }
-                .disabled((messageText.isEmpty && showingDocumentPreview == nil && selectedImage == nil) || isLoading)
+                .disabled((messageText.isEmpty && showingDocumentPreview == nil && selectedImage == nil) || chatManager.isLoading)
                 .padding(.trailing, 4)
             }
             .padding(.horizontal, 16)
@@ -221,7 +220,7 @@ struct ChatView: View {
                                 }
                             }
                         }
-                        if isLoading || chatManager.isLoading {
+                        if chatManager.isLoading {
                             loadingBubble
                         }
                     }
@@ -270,6 +269,21 @@ struct ChatView: View {
                 }
             }
         }
+        .onChange(of: chatManager.sendError) { error in
+            guard let error else { return }
+            switch error.domain {
+            case "OllamaUnauthorizedError":
+                showingUnauthorizedAlert = true
+            case "OllamaUnsupportedURLError":
+                showingUnsupportedURLAlert = true
+            case "OllamaError" where error.code >= 500:
+                serverErrorMessage = "The server returned an error (\(error.code)). This is likely a temporary issue — please try again."
+                showingServerErrorAlert = true
+            default:
+                documentErrorMessage = error.localizedDescription
+                showingDocumentErrorAlert = true
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
@@ -315,21 +329,13 @@ struct ChatView: View {
 
     private func retrySend() {
         guard let conversation = conversation else { return }
-        Task {
-            isLoading = true
-            defer { isLoading = false }
-            do {
-                _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
-            } catch {
-                print("Retry error: \(error)")
-            }
-        }
+        chatManager.startSendMessage(lastMessageToSend, in: conversation)
     }
 
     private func handleDocumentSelected(_ fileURL: URL) {
         Task {
-            isLoading = true
-            defer { isLoading = false }
+            chatManager.isLoading = true
+            defer { chatManager.isLoading = false }
 
             guard fileURL.startAccessingSecurityScopedResource() else { return }
             defer { fileURL.stopAccessingSecurityScopedResource() }
@@ -394,8 +400,6 @@ struct ChatView: View {
             messageText = ""
             editingMessage = nil
             Task {
-                isLoading = true
-                defer { isLoading = false }
                 do {
                     try await chatManager.updateMessage(msgToEdit.id, to: content, in: conversation)
                 } catch let nsError as NSError where nsError.domain == "OllamaUnauthorizedError" {
@@ -416,33 +420,22 @@ struct ChatView: View {
         lastMessageToSend = messageText
         messageText = ""
 
-        Task {
-            isLoading = true
-            defer { isLoading = false }
+        let fileURL = showingDocumentPreview?.0
+        let image = selectedImage
+        selectedImage = nil
 
-            do {
-                if let (fileURL, _) = showingDocumentPreview {
-                    _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation, withPDFAt: fileURL)
-                    try? FileManager.default.removeItem(at: fileURL)
-                    showingDocumentPreview = nil
-                } else if let image = selectedImage {
-                    selectedImage = nil
-                    _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation, withImage: image)
-                } else {
-                    _ = try await chatManager.sendMessage(lastMessageToSend, in: conversation)
+        chatManager.startSendMessage(
+            lastMessageToSend,
+            in: conversation,
+            fileURL: fileURL,
+            image: image,
+            onSuccess: {
+                if let url = fileURL {
+                    try? FileManager.default.removeItem(at: url)
                 }
-            } catch let nsError as NSError where nsError.domain == "OllamaUnauthorizedError" {
-                showingUnauthorizedAlert = true
-            } catch let nsError as NSError where nsError.domain == "OllamaUnsupportedURLError" {
-                showingUnsupportedURLAlert = true
-            } catch let nsError as NSError where nsError.domain == "OllamaError" && nsError.code >= 500 {
-                serverErrorMessage = "The server returned an error (\(nsError.code)). This is likely a temporary issue — please try again."
-                showingServerErrorAlert = true
-            } catch {
-                documentErrorMessage = error.localizedDescription
-                showingDocumentErrorAlert = true
+                showingDocumentPreview = nil
             }
-        }
+        )
     }
 }
 

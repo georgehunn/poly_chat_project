@@ -1,54 +1,79 @@
-# PolyChat - iPhone AI Chat Application ✅
+# PolyChat - iPhone AI Chat Application
 
-An open-source AI chat application for iPhone that integrates with Ollama and other AI providers.
-
-**Status: Ready for Testing!** All compilation issues have been resolved.
+An open-source iOS chat application for interacting with AI models via Ollama, OpenAI, Grok, and other compatible providers.
 
 ## Overview
 
-PolyChat is a native iOS application that provides a seamless chat experience with locally-hosted AI models through Ollama. Unlike proprietary solutions, PolyChat gives you full control over your data and model choices.
+PolyChat is a native iOS application that provides a seamless chat experience with locally-hosted and cloud AI models. Unlike proprietary solutions, PolyChat gives you full control over your data and model choices — all conversation data is stored locally on your device.
 
 ## Features
 
-- 🤖 **Ollama Integration**: Connect to local or remote Ollama instances with full conversation history support
-- 💬 **Chat Interface**: Modern, intuitive chat interface similar to ChatGPT with multi-turn conversation support
-- 🧠 **Model Selection**: Browse and select from available AI models
-- 👥 **Personalized Chats**: Each conversation gets a unique name from random boy/girl name lists
-- 🏷️ **Model Information**: View which AI model is being used in each conversation
-- ✏️ **Rename Conversations**: Long press to rename conversations to your preference
-- 🌙 **Dark Mode**: Built-in dark mode support
-- 🔒 **Privacy First**: All data stored locally on your device
-- 📤 **Data Export**: Export conversations as JSON
-- ⚙️ **Full Settings**: Customize your experience
+### AI Providers
+- **Ollama**: Connect to local or remote Ollama instances
+
+### Chat
+- **Multi-turn Conversations**: Full conversation history with context
+- **Auto-generated Titles**: LLM-generated contextual conversation names
+- **Rename & Delete**: Manage conversations with long-press context menus
+- **Message Editing & Retry**: Edit sent messages and regenerate responses
+- **Markdown Rendering**: Full markdown with code syntax highlighting and LaTeX/math support
+
+### Models
+- **Model Browsing**: Browse available models with detailed capability info
+- **Model Comparison**: Side-by-side comparison of two models
+- **Starred Models**: Favorite models for quick access
+- **Thinking Models**: Extended reasoning traces from models like DeepSeek-R1 and Qwen3
+
+### Attachments & Tools
+- **Vision**: Attach and analyze images with vision-capable models
+- **PDF Processing**: Attach PDFs up to 50MB with automatic text extraction
+- **Web Search**: Tavily API integration for real-time web results (1,000 free searches/month)
+- **Tool Use**: Function calling with multi-turn tool loops (up to 3 iterations)
+- **Date Tool**: Built-in current date/time context tool
+
+### Customization & Privacy
+- **Dark Mode**: Built-in dark mode toggle
+- **System Prompt**: Customizable default system prompt for new conversations
+- **Privacy First**: All data stored locally, no telemetry
+- **Data Export**: Export conversations as JSON
+- **Secure Storage**: API keys stored in Keychain, never in UserDefaults
 
 ## Technical Architecture
 
 ### Core Components
 - **SwiftUI**: Modern iOS interface framework
-- **Ollama API**: REST API integration for AI model access
-- **Keychain**: Secure storage for API keys and sensitive data
-- **UserDefaults**: Local storage for conversations and settings
+- **ProviderManager**: Routes requests to the active AI provider (Ollama, OpenAI, Grok)
+- **OllamaService**: REST API client for Ollama with streaming support
+- **ChatManager**: Orchestrates message sending, tool loops, and title generation
+- **ModelManager**: Fetches and enriches model metadata, manages favorites
+- **WebSearchService**: Tavily API integration for web search tool
+- **PDFDocumentService**: PDF text extraction via PDFKit
+- **MarkdownWebView**: WKWebView-based renderer with MathJax and code highlighting
+- **SecureStorageService**: Keychain wrapper for sensitive credentials
+- **LocalStorageService**: Conversation persistence via UserDefaults
 
 ### Data Flow
-1. User sends message through UI
-2. Message routed through ChatManager
-3. Request sent to Ollama API
-4. Response streamed back to UI
-5. Conversation persisted locally
+1. User sends message (optionally with image or PDF attachment)
+2. `ChatManager` prepares the request and selects the active provider
+3. Request sent to provider API (streamed response)
+4. If the model calls a tool (`web_search`, `get_current_date`), the tool runs and results are fed back (up to 3 tool iterations)
+5. Final response rendered in the chat view with markdown support
+6. Conversation title auto-generated from the first exchange (if untitled)
+7. Conversation persisted locally
 
 ### Security
-- API keys stored in Keychain (secure enclave)
-- Conversation data encoded in UserDefaults
+- API keys stored in Keychain (not UserDefaults)
 - No automatic data sharing with third parties
+- PDF files cleaned up from disk after 24 hours
 
 ## Project Structure
 
 ```
 poly_chat/
 ├── poly_chat/                # Main source code
-│   ├── Models/              # Data models (Conversation, Message, etc.)
-│   ├── Services/            # Business logic (ChatManager, OllamaService)
-│   ├── Views/               # UI components (ContentView, ChatView, etc.)
+│   ├── Models/              # Data models (Conversation, Message, ModelInfo, etc.)
+│   ├── Services/            # Business logic (ChatManager, OllamaService, etc.)
+│   ├── Views/               # UI components (ChatView, ModelsView, SettingsView, etc.)
 │   └── poly_chatApp.swift   # Main app entry point
 ├── poly_chatTests/          # Unit tests
 ├── poly_chatUITests/        # UI tests
@@ -58,19 +83,20 @@ poly_chat/
 ## Getting Started
 
 ### Prerequisites
-1. Xcode 14.0 or higher
-2. Ollama installed locally (`brew install ollama`)
-3. At least one model pulled (`ollama pull llama3`)
+- Xcode 15.0 or higher
+- At least one of the following:
+  - **Ollama** installed locally (`brew install ollama`) with a model pulled
+  - An **OpenAI** API key
+  - A **Grok** API key from x.ai
 
 ### Installation
 1. Clone or download this project
 2. Open `Poly_Chat.xcodeproj` in Xcode
-3. Add Security.framework to your project (see XCODE_SETUP.md)
-4. **IMPORTANT**: All compilation issues have been resolved! ✅
-5. Select a simulator or connected device
-6. Press Cmd+R to build and run
+3. Select a simulator or connected device
+4. Press `Cmd+R` to build and run
+5. On first launch, configure your provider endpoint and API key in Settings
 
-### Running Ollama
+### Running Ollama (local setup)
 ```bash
 # Start Ollama service
 ollama serve
@@ -79,67 +105,70 @@ ollama serve
 ollama pull llama3
 ```
 
+### Optional: Enable Web Search
+Sign up for a free Tavily API key at [tavily.com](https://tavily.com) and add it in Settings to enable the web search tool.
+
 ## Testing
 
 ### Unit Tests
-Run unit tests by pressing Cmd+U in Xcode or:
 ```bash
-# In Xcode, go to Product → Test
-# Or use xcodebuild:
-xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'platform=iOS Simulator,name=iPhone 14'
+xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
 
-### Manual Testing
-1. Launch the app in simulator
-2. Create a new conversation
-3. Select a model
-4. Send a message
-5. Verify response from Ollama
-6. Test settings and data management features
+Or press `Cmd+U` in Xcode.
+
+### Manual Testing Checklist
+1. Launch the app and configure a provider in Settings
+2. Create a new conversation and select a model
+3. Send a text message and verify streaming response
+4. Attach an image (requires a vision-capable model)
+5. Attach a PDF and ask a question about its contents
+6. Enable web search and ask about a recent event
+7. Open Models view and compare two models
+8. Export a conversation and verify the JSON output
 
 ## Development
 
 ### Adding New Features
-1. Follow the existing patterns in Models/Services/Views
-2. Add unit tests for new functionality
-3. Ensure proper error handling
-4. Maintain privacy-focused data handling
+1. Follow the existing MVVM patterns in `Models/`, `Services/`, `Views/`
+2. Route new AI capabilities through `ChatManager`
+3. Add new provider support via the `OpenAIBackendAdapter` pattern
+4. Add unit tests for new service logic
+5. Maintain local-first, privacy-focused data handling
 
 ### Contributing
 1. Fork the repository
 2. Create a feature branch
-3. Add your changes
-4. Write tests
-5. Submit a pull request
+3. Add your changes with tests
+4. Submit a pull request
 
 ## Troubleshooting
 
-### Common Issues
+### Cannot connect to Ollama
+- Ensure Ollama is running: `ollama serve`
+- Check the endpoint in Settings (default: `http://localhost:11434`)
+- Verify firewall/network settings if using a remote instance
 
-1. **Cannot connect to Ollama**
-   - Ensure Ollama is running (`ollama serve`)
-   - Check endpoint in Settings (should be http://localhost:11434)
-   - Verify firewall settings
+### No models appearing
+- For Ollama: pull a model first (`ollama pull llama3`)
+- For OpenAI/Grok: verify your API key is set in Settings
+- Try pulling the model list manually by tapping the refresh button in Models view
 
-2. **No models appearing**
-   - Pull a model: `ollama pull llama3`
-   - Restart the app
+### Keychain errors
+- Ensure `Security.framework` is linked in Xcode project settings
+- Check signing entitlements
 
-3. **Keychain errors**
-   - Ensure Security.framework is added to the project
-   - Check entitlements
-
-4. **App Icon Issues**
-   - The app now includes all required icons including the 1024x1024 PNG for App Store submission
-   - If you encounter icon-related build errors, verify the Contents.json file in AppIcon.appiconset includes filename references
+### Web search not working
+- Verify the Tavily API key is entered in Settings
+- The status indicator in Settings will show if the key is valid
+- Free tier allows 1,000 searches/month
 
 ## Roadmap
-
-- [ ] Enhanced model comparison features
-- [ ] Document processing capabilities
-- [ ] Voice input/output
+ 
+- [x] Model comparison view
+- [x] Document (PDF) processing
+- [ ] Any OpenAI-compatible API: Configurable endpoint + API key
 - [ ] Multi-device sync (opt-in)
-- [ ] Plugin architecture for other AI providers
 
 ## License
 
@@ -147,6 +176,8 @@ This project is open source and available under the MIT License.
 
 ## Acknowledgments
 
-- Ollama team for the excellent local AI model platform
+- [Ollama](https://ollama.com) for the excellent local AI model platform
+- [Tavily](https://tavily.com) for the web search API
+- [MathJax](https://www.mathjax.org) for LaTeX rendering
 - SwiftUI community for the fantastic framework
 - All contributors to this project

@@ -65,7 +65,7 @@ struct InfoView: View {
                             Text("Poly_Chat allows you to access LLMs via api while keeping ownership over your data - nothing is saved on the cloud")
                                 .padding(.bottom, 5)
 
-                            Link("Visit our website to understand more about the project", destination: URL(string: "https://")!)
+                            Link("Visit our website to understand more about the project", destination: URL(string: "https://www.polychat.me")!)
                                 .foregroundColor(.blue)
                                 .underline()
 
