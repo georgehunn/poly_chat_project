@@ -329,8 +329,19 @@ class ChatManager: ObservableObject {
                 let chatResponse: ChatServiceResponse
 
                 try Task.checkCancellation()
-                if let provider = ProviderManager.shared.getActiveProvider(),
-                   provider.providerType == .openAI || provider.providerType == .grok {
+                // Route by per-model providerId (custom endpoints), then fall back to
+                // the active provider check, then default to Ollama.
+                if let pid = conversation.model.providerId,
+                   let customProvider = ProviderManager.shared.customProvider(for: pid) {
+                    print("[ToolLoop] Routing to custom OpenAI adapter (provider: \(customProvider.name))")
+                    let adapter = OpenAIBackendAdapter(providerConfig: customProvider)
+                    chatResponse = try await adapter.generateChatResponseWithTools(
+                        messages: workingMessages,
+                        model: conversation.model.name,
+                        tools: iterationTools
+                    )
+                } else if let provider = ProviderManager.shared.getActiveProvider(),
+                          provider.providerType == .openAICompatible {
                     print("[ToolLoop] Routing to OpenAI adapter (provider: \(provider.name))")
                     let adapter = OpenAIBackendAdapter(providerConfig: provider)
                     chatResponse = try await adapter.generateChatResponseWithTools(
@@ -446,8 +457,13 @@ class ChatManager: ObservableObject {
             let syntheticMessages = [Message(id: UUID(), role: .user, content: syntheticContent, timestamp: Date())]
 
             let finalResponse: ChatServiceResponse
-            if let provider = ProviderManager.shared.getActiveProvider(),
-               provider.providerType == .openAI || provider.providerType == .grok {
+            if let pid = conversation.model.providerId,
+               let customProvider = ProviderManager.shared.customProvider(for: pid) {
+                let adapter = OpenAIBackendAdapter(providerConfig: customProvider)
+                finalResponse = try await adapter.generateChatResponseWithTools(
+                    messages: syntheticMessages, model: conversation.model.name, tools: [])
+            } else if let provider = ProviderManager.shared.getActiveProvider(),
+                      provider.providerType == .openAICompatible {
                 let adapter = OpenAIBackendAdapter(providerConfig: provider)
                 finalResponse = try await adapter.generateChatResponseWithTools(
                     messages: syntheticMessages, model: conversation.model.name, tools: [])
@@ -582,7 +598,7 @@ class ChatManager: ObservableObject {
             return
         }
 
-        let newTitle = await NameGenerationService.shared.generateTitleFromMessages(nonSystemMessages, model: conversation.model.name)
+        let newTitle = await NameGenerationService.shared.generateTitleFromMessages(nonSystemMessages, model: conversation.model)
 
         // Only update if we got a valid title and it's different from "New Chat"
         if !newTitle.isEmpty && newTitle != "New Chat" {

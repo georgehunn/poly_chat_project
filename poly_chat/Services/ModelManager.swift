@@ -3,7 +3,11 @@ import Combine
 
 class ModelManager: ObservableObject {
     @Published var models: [ModelInfo] = []
+    @Published var customModels: [ModelInfo] = []
     @Published var isLoading = false
+
+    /// All models across Ollama and every custom endpoint.
+    var allModels: [ModelInfo] { models + customModels }
     @Published var starredModelNames: Set<String> = {
         // Default star "nemotron-3-super" on first launch
         if UserDefaults.standard.object(forKey: "starredModelNames") == nil {
@@ -97,7 +101,40 @@ class ModelManager: ObservableObject {
     /// Clears current models and reloads from API. Use when user installs a new model.
     func refreshModels() {
         models = []
+        customModels = []
         loadModels()
+        loadCustomModels()
+    }
+
+    /// Fetches models from all configured custom OpenAI-compatible endpoints in parallel.
+    func loadCustomModels() {
+        let providers = ProviderManager.shared.customProviders
+        guard !providers.isEmpty else {
+            customModels = []
+            return
+        }
+
+        Task {
+            var results: [ModelInfo] = []
+            await withTaskGroup(of: [ModelInfo].self) { group in
+                for provider in providers {
+                    group.addTask {
+                        do {
+                            return try await OpenAIBackendAdapter.listModels(provider: provider)
+                        } catch {
+                            print("Error loading models from \(provider.name): \(error)")
+                            return []
+                        }
+                    }
+                }
+                for await providerModels in group {
+                    results.append(contentsOf: providerModels)
+                }
+            }
+            DispatchQueue.main.async {
+                self.customModels = results
+            }
+        }
     }
 
     func loadModelDetails(for model: ModelInfo) async throws -> ModelInfo {

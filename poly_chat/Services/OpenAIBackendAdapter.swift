@@ -100,7 +100,7 @@ class OpenAIBackendAdapter: BackendAdapter {
         request.httpBody = jsonData
 
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await dataWithRetry(request: request)
 
             if let httpResponse = response as? HTTPURLResponse {
                 print("[OpenAIAdapter] HTTP \(httpResponse.statusCode)")
@@ -156,6 +156,80 @@ class OpenAIBackendAdapter: BackendAdapter {
             throw urlError
         } catch {
             throw error
+        }
+    }
+}
+
+// MARK: - Retry Helper
+
+extension OpenAIBackendAdapter {
+    /// Retries a URLRequest up to 3 times for transient server errors (503, 429).
+    /// Uses exponential backoff: 1s, 2s, 4s.
+    private func dataWithRetry(request: URLRequest, maxAttempts: Int = 3) async throws -> (Data, URLResponse) {
+        var lastError: Error?
+        for attempt in 0..<maxAttempts {
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let http = response as? HTTPURLResponse,
+                   (http.statusCode == 503 || http.statusCode == 429),
+                   attempt < maxAttempts - 1 {
+                    let delay = UInt64(pow(2.0, Double(attempt))) * 1_000_000_000
+                    print("[OpenAIAdapter] HTTP \(http.statusCode) — retrying in \(Int(pow(2.0, Double(attempt))))s (attempt \(attempt + 1)/\(maxAttempts))")
+                    try await Task.sleep(nanoseconds: delay)
+                    continue
+                }
+                return (data, response)
+            } catch {
+                lastError = error
+                if attempt < maxAttempts - 1 {
+                    let delay = UInt64(pow(2.0, Double(attempt))) * 1_000_000_000
+                    print("[OpenAIAdapter] Network error — retrying in \(Int(pow(2.0, Double(attempt))))s: \(error)")
+                    try await Task.sleep(nanoseconds: delay)
+                }
+            }
+        }
+        throw lastError ?? URLError(.timedOut)
+    }
+}
+
+// MARK: - Model Listing
+
+extension OpenAIBackendAdapter {
+    /// Fetches the list of available models from an OpenAI-compatible /models endpoint.
+    static func listModels(provider: APIProviderConfig) async throws -> [ModelInfo] {
+        let urlString = "\(provider.endpoint)/models"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        if !provider.apiKey.isEmpty {
+            request.setValue("Bearer \(provider.apiKey)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
+            throw NSError(
+                domain: "APIError",
+                code: httpResponse.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: "Server error \(httpResponse.statusCode)"]
+            )
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let dataArray = json["data"] as? [[String: Any]] else {
+            throw NSError(domain: "ParseError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not parse /models response"])
+        }
+
+        return dataArray.compactMap { modelDict -> ModelInfo? in
+            guard let id = modelDict["id"] as? String else { return nil }
+            return ModelInfo(
+                name: id,
+                displayName: id,
+                provider: provider.name,
+                capabilities: ["text-generation"],
+                providerId: provider.id
+            )
         }
     }
 }

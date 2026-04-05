@@ -12,7 +12,7 @@ struct ModelsView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             List {
-                if !modelManager.models.isEmpty {
+                if !modelManager.allModels.isEmpty {
                     Section(header: Text("Information")) {
                         Text("Tap on any model below to view detailed information including technical specifications, capabilities, and descriptions. Swipe right to star your favorite models for quick access later.")
                             .font(.caption)
@@ -21,8 +21,8 @@ struct ModelsView: View {
                     }
                 }
 
-                Section(header: Text("Available Models")) {
-                    if modelManager.isLoading {
+                if modelManager.isLoading {
+                    Section(header: Text("Available Models")) {
                         HStack {
                             Spacer()
                             VStack {
@@ -34,24 +34,34 @@ struct ModelsView: View {
                             Spacer()
                         }
                         .padding()
-                    } else if modelManager.models.isEmpty {
+                    }
+                } else if modelManager.allModels.isEmpty {
+                    Section(header: Text("Available Models")) {
                         Text("No models available")
                             .foregroundColor(.secondary)
-                    } else {
-                        ForEach(sortedModels, id: \.name) { model in
-                            NavigationLink(value: model) {
-                                ModelRowView(model: model, isStarred: modelManager.isStarred(model))
-                            }
-                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                Button {
-                                    modelManager.toggleStar(for: model)
-                                } label: {
-                                    Label(
-                                        modelManager.isStarred(model) ? "Unstar" : "Star",
-                                        systemImage: modelManager.isStarred(model) ? "star.slash.fill" : "star.fill"
-                                    )
+                    }
+                } else {
+                    let providers: [String] = {
+                        var seen = Set<String>()
+                        return sortedModels.map { $0.provider }.filter { seen.insert($0).inserted }
+                    }()
+                    ForEach(providers, id: \.self) { providerName in
+                        Section(header: Text(providerName)) {
+                            ForEach(sortedModels.filter { $0.provider == providerName }, id: \.name) { model in
+                                NavigationLink(value: model) {
+                                    ModelRowView(model: model, isStarred: modelManager.isStarred(model))
                                 }
-                                .tint(.yellow)
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    Button {
+                                        modelManager.toggleStar(for: model)
+                                    } label: {
+                                        Label(
+                                            modelManager.isStarred(model) ? "Unstar" : "Star",
+                                            systemImage: modelManager.isStarred(model) ? "star.slash.fill" : "star.fill"
+                                        )
+                                    }
+                                    .tint(.yellow)
+                                }
                             }
                         }
                     }
@@ -64,11 +74,11 @@ struct ModelsView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    if !modelManager.models.isEmpty {
+                    if !modelManager.allModels.isEmpty {
                         Button(action: { isComparing = true }) {
                             Label("Compare", systemImage: "arrow.left.arrow.right")
                         }
-                        .disabled(modelManager.models.count < 2)
+                        .disabled(modelManager.allModels.count < 2)
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -86,15 +96,16 @@ struct ModelsView: View {
                 .environmentObject(modelManager)
             }
             .onAppear {
-                if modelManager.models.isEmpty && !modelManager.isLoading {
+                if modelManager.allModels.isEmpty && !modelManager.isLoading {
                     modelManager.loadModels()
+                    modelManager.loadCustomModels()
                 }
             }
         }
     }
 
     private var sortedModels: [ModelInfo] {
-        modelManager.models.sorted { $0.name < $1.name }
+        modelManager.allModels.sorted { $0.name < $1.name }
     }
 }
 
@@ -252,7 +263,7 @@ struct ModelComparisonView: View {
     }
 
     private var sortedModels: [ModelInfo] {
-        modelManager.models.sorted { $0.name < $1.name }
+        modelManager.allModels.sorted { $0.name < $1.name }
     }
 }
 

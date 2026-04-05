@@ -7,11 +7,14 @@ class ProviderManager: ObservableObject {
 
     @Published var activeProviderId: String?
     @Published var providers: [APIProviderConfig] = []
+    /// Custom OpenAI-compatible endpoints configured by the user.
+    @Published var customProviders: [APIProviderConfig] = []
 
     private let storageService = SecureStorageService()
 
     private init() {
         loadProviders()
+        loadCustomProviders()
     }
 
     /// Load provider configuration from Keychain
@@ -78,7 +81,7 @@ class ProviderManager: ObservableObject {
         switch config.providerType {
         case .ollama:
             return OllamaBackendAdapter()
-        case .grok, .openAI:
+        case .openAICompatible:
             return OpenAIBackendAdapter(providerConfig: config)
         }
     }
@@ -129,6 +132,51 @@ class ProviderManager: ObservableObject {
         }
 
         return enrichedModels
+    }
+
+    // MARK: - Custom Provider Management
+
+    /// Load custom OpenAI-compatible providers from Keychain
+    func loadCustomProviders() {
+        customProviders = storageService.getCustomProviders() ?? []
+    }
+
+    /// Persist custom providers to Keychain
+    func saveCustomProviders() {
+        _ = storageService.saveCustomProviders(customProviders)
+    }
+
+    /// Add a new custom OpenAI-compatible endpoint
+    @discardableResult
+    func addCustomProvider(name: String, endpoint: String, apiKey: String) -> APIProviderConfig {
+        var config = APIProviderConfig(
+            name: name,
+            providerType: .openAICompatible,
+            endpoint: endpoint,
+            apiKey: apiKey
+        )
+        config.normalizeEndpoint()
+        customProviders.append(config)
+        saveCustomProviders()
+        return config
+    }
+
+    /// Update an existing custom provider
+    func updateCustomProvider(_ config: APIProviderConfig) {
+        guard let index = customProviders.firstIndex(where: { $0.id == config.id }) else { return }
+        customProviders[index] = config
+        saveCustomProviders()
+    }
+
+    /// Delete a custom provider
+    func deleteCustomProvider(_ config: APIProviderConfig) {
+        customProviders.removeAll { $0.id == config.id }
+        saveCustomProviders()
+    }
+
+    /// Find a custom provider config by its ID
+    func customProvider(for providerId: String) -> APIProviderConfig? {
+        customProviders.first(where: { $0.id == providerId })
     }
 
     // MARK: - Private Helper Methods

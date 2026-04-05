@@ -17,8 +17,11 @@ struct SettingsView: View {
     @State private var showingDeleteAlert = false
     @State private var showingExportView = false
     @State private var tavilyStatus: ValidationState = .idle
+    @State private var showingAddEndpoint = false
+    @State private var endpointToEdit: APIProviderConfig?
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject private var chatManager: ChatManager
+    @ObservedObject private var providerManager = ProviderManager.shared
 
     let localStorageService = LocalStorageService()
     let secureStorageService = SecureStorageService()
@@ -43,6 +46,39 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundColor(.accentColor)
                     Text("Ollama lets you run large language models locally or access hosted models. An API key is only required for remote/hosted Ollama instances.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Section(header: Text("Custom API Endpoints")) {
+                    if providerManager.customProviders.isEmpty {
+                        Text("No custom endpoints configured")
+                            .foregroundColor(.secondary)
+                            .font(.subheadline)
+                    } else {
+                        ForEach(providerManager.customProviders) { provider in
+                            Button(action: { endpointToEdit = provider }) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(provider.name)
+                                        .foregroundColor(.primary)
+                                    Text(provider.endpoint)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                        }
+                        .onDelete { indexSet in
+                            indexSet.forEach { i in
+                                providerManager.deleteCustomProvider(providerManager.customProviders[i])
+                            }
+                        }
+                    }
+                    Button(action: { showingAddEndpoint = true }) {
+                        Label("Add Endpoint", systemImage: "plus.circle")
+                    }
+                    .foregroundColor(.accentColor)
+                    Text("Add any OpenAI-compatible API endpoint. Models from these endpoints will appear alongside Ollama models when starting a new chat.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -133,6 +169,12 @@ struct SettingsView: View {
                 ExportConversationsView(conversations: chatManager.conversations)
             }
             .onAppear { loadSettings() }
+            .sheet(isPresented: $showingAddEndpoint) {
+                EndpointFormView(mode: .add)
+            }
+            .sheet(item: $endpointToEdit) { config in
+                EndpointFormView(mode: .edit(config))
+            }
         }
     }
 

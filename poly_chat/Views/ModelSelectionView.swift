@@ -30,14 +30,14 @@ struct ModelSelectionView: View {
                         }
                         .padding()
                     }
-                } else if modelManager.models.isEmpty {
+                } else if modelManager.allModels.isEmpty {
                     Section(header: Text("Select a Model")) {
                         Text("No models available")
                             .foregroundColor(.secondary)
                     }
                 } else {
-                    let starred = sortedModels.filter { modelManager.isStarred($0) }
-                    let unstarred = sortedModels.filter { !modelManager.isStarred($0) }
+                    let allSorted = sortedModels
+                    let starred = allSorted.filter { modelManager.isStarred($0) }
 
                     if !starred.isEmpty {
                         Section(header: Text("Starred")) {
@@ -47,9 +47,17 @@ struct ModelSelectionView: View {
                         }
                     }
 
-                    Section(header: Text(starred.isEmpty ? "Select a Model" : "All Models")) {
-                        ForEach(unstarred, id: \.name) { model in
-                            modelSelectionRow(model)
+                    // Group unstarred models by their provider name (preserve insertion order)
+                    let unstarred = allSorted.filter { !modelManager.isStarred($0) }
+                    let providers: [String] = {
+                        var seen = Set<String>()
+                        return unstarred.map { $0.provider }.filter { seen.insert($0).inserted }
+                    }()
+                    ForEach(providers, id: \.self) { providerName in
+                        Section(header: Text(providerName)) {
+                            ForEach(unstarred.filter { $0.provider == providerName }, id: \.name) { model in
+                                modelSelectionRow(model)
+                            }
                         }
                     }
                 }
@@ -64,8 +72,9 @@ struct ModelSelectionView: View {
             }
         }
         .onAppear {
-            if modelManager.models.isEmpty && !modelManager.isLoading {
+            if modelManager.allModels.isEmpty && !modelManager.isLoading {
                 modelManager.loadModels()
+                modelManager.loadCustomModels()
             }
         }
         .alert("Configuration Required", isPresented: $showingConfigAlert) {
@@ -132,6 +141,6 @@ struct ModelSelectionView: View {
     }
 
     private var sortedModels: [ModelInfo] {
-        modelManager.models.sorted { $0.name < $1.name }
+        modelManager.allModels.sorted { $0.name < $1.name }
     }
 }

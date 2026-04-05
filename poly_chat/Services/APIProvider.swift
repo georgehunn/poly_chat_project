@@ -3,22 +3,24 @@ import Foundation
 /// Represents the type of API provider
 enum ProviderType: String, Codable, CaseIterable {
     case ollama = "Ollama"
-    case grok = "Grok"
-    case openAI = "OpenAI"
-
-    var defaultEndpoint: String {
-        switch self {
-        case .ollama:
-            return "https://ollama.com/api"
-        case .grok:
-            return "https://api.x.ai/v1"
-        case .openAI:
-            return "https://api.openai.com/v1"
-        }
-    }
+    case openAICompatible = "OpenAI-Compatible"
 
     var supportsAPIKey: Bool {
-        true // All supported providers use API keys
+        true
+    }
+
+    // Migrate old persisted values
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        switch rawValue {
+        case "Ollama":
+            self = .ollama
+        case "Grok", "OpenAI", "OpenAI-Compatible":
+            self = .openAICompatible
+        default:
+            self = .openAICompatible
+        }
     }
 }
 
@@ -49,7 +51,7 @@ struct APIProviderConfig: Identifiable, Codable {
         switch providerType {
         case .ollama:
             providerPath = "/api"
-        case .grok, .openAI:
+        case .openAICompatible:
             providerPath = "/v1"
         }
 

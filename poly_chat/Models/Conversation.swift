@@ -97,6 +97,8 @@ struct ModelInfo: Codable, Hashable {
     var displayName: String
     var provider: String
     var capabilities: [String]
+    /// ID of the custom APIProviderConfig this model belongs to. nil = Ollama (default).
+    var providerId: String?
 
     // Detailed model information
     var description: String?
@@ -112,6 +114,7 @@ struct ModelInfo: Codable, Hashable {
         displayName: String,
         provider: String,
         capabilities: [String],
+        providerId: String? = nil,
         description: String? = nil,
         parameterSize: String? = nil,
         quantizationLevel: String? = nil,
@@ -124,6 +127,7 @@ struct ModelInfo: Codable, Hashable {
         self.displayName = displayName
         self.provider = provider
         self.capabilities = capabilities
+        self.providerId = providerId
         self.description = description
         self.parameterSize = parameterSize
         self.quantizationLevel = quantizationLevel

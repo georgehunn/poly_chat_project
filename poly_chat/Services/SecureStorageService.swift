@@ -44,4 +44,20 @@ class SecureStorageService {
     func deleteTavilyAPIKey() -> Bool {
         return KeychainService.shared.delete(service: serviceName, account: "tavilyAPIKey")
     }
+
+    // MARK: - Custom Providers (OpenAI-compatible endpoints)
+
+    func saveCustomProviders(_ providers: [APIProviderConfig]) -> Bool {
+        guard let data = try? JSONEncoder().encode(providers) else { return false }
+        return KeychainService.shared.save(service: serviceName, account: "customProviders", data: data)
+    }
+
+    func getCustomProviders() -> [APIProviderConfig]? {
+        guard let data = KeychainService.shared.load(service: serviceName, account: "customProviders") else { return nil }
+        return try? JSONDecoder().decode([APIProviderConfig].self, from: data)
+    }
+
+    func deleteCustomProviders() -> Bool {
+        return KeychainService.shared.delete(service: serviceName, account: "customProviders")
+    }
 }
