@@ -113,7 +113,7 @@ struct InfoView: View {
 
                             Text("1. Control - Use the models you want, switch anytime.")
                                 .padding(.vertical, 2)
-                            Text("2. Privacy first - Your data stays on your device. No tracking.")
+                            Text("2. Privacy first - Your data stays on your device.")
                                 .padding(.vertical, 2)
                             Text("3. Useful > flashy - Useful features that support how people actually use AI.")
                                 .padding(.vertical, 2)
