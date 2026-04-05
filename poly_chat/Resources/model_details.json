@@ -1,0 +1,679 @@
+{
+  "models": [
+    {
+      "name": "ministral-3:3b",
+      "displayName": "Ministral 3 3B",
+      "provider": "Mistral",
+      "capabilities": [
+        "text-generation",
+        "vision",
+        "tool-use"
+      ],
+      "description": "Edge-optimized multimodal model family designed to run efficiently across a wide range of hardware.",
+      "parameterSize": [
+        "3B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "ministral",
+      "hasVision": true,
+      "hasTools": true
+    },
+    {
+      "name": "ministral-3:8b",
+      "displayName": "Ministral 3 8B",
+      "provider": "Mistral",
+      "capabilities": [
+        "text-generation",
+        "vision",
+        "tool-use"
+      ],
+      "description": "Edge-optimized multimodal model family designed to run efficiently across a wide range of hardware.",
+      "parameterSize": [
+        "8B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "ministral",
+      "hasVision": true,
+      "hasTools": true
+    },
+    {
+      "name": "ministral-3:14b",
+      "displayName": "Ministral 3 14B",
+      "provider": "Mistral",
+      "capabilities": [
+        "text-generation",
+        "vision",
+        "tool-use"
+      ],
+      "description": "Edge-optimized multimodal model family designed to run efficiently across a wide range of hardware.",
+      "parameterSize": [
+        "14B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "ministral",
+      "hasVision": true,
+      "hasTools": true
+    },
+    {
+      "name": "ministral-large-3:675b",
+      "displayName": "Ministral Large 3 675B",
+      "provider": "Mistral",
+      "capabilities": [
+        "text-generation",
+        "vision",
+        "tool-use"
+      ],
+      "description": "Edge-optimized multimodal model family designed to run efficiently across a wide range of hardware.",
+      "parameterSize": [
+        "675B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "ministral",
+      "hasVision": true,
+      "hasTools": true
+    },
+    {
+      "name": "gemma3:12b",
+      "displayName": "Gemma 3 12B",
+      "provider": "Google",
+      "capabilities": [
+        "text-generation",
+        "vision"
+      ],
+      "description": "Google’s latest open multimodal model family designed for strong performance on a single GPU.",
+      "parameterSize": [
+        "12B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 128000,
+      "family": "gemma3",
+      "hasVision": true,
+      "hasTools": false
+    },
+    {
+      "name": "gemma3:27b",
+      "displayName": "Gemma 3 27B",
+      "provider": "Google",
+      "capabilities": [
+        "text-generation",
+        "vision"
+      ],
+      "description": "Google’s latest open multimodal model family designed for strong performance on a single GPU.",
+      "parameterSize": [
+        "27B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 128000,
+      "family": "gemma3",
+      "hasVision": true,
+      "hasTools": false
+    },
+    {
+      "name": "gemma3:4b",
+      "displayName": "Gemma 3 4B",
+      "provider": "Google",
+      "capabilities": [
+        "text-generation",
+        "vision"
+      ],
+      "description": "Google’s latest open multimodal model family designed for strong performance on a single GPU.",
+      "parameterSize": [
+        "4B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 128000,
+      "family": "gemma3",
+      "hasVision": true,
+      "hasTools": false
+    },
+    {
+      "name": "glm-4.7",
+      "displayName": "GLM 4.7",
+      "provider": "Zhipu",
+      "capabilities": [
+        "text-generation",
+        "code"
+      ],
+      "description": "Improved GLM model focused on advancing coding capabilities.",
+      "parameterSize": null,
+      "quantizationLevel": "BF16",
+      "contextLength": 200000,
+      "family": "glm",
+      "hasVision": false,
+      "hasTools": false
+    },
+    {
+      "name": "glm-4.6",
+      "displayName": "GLM 4.6",
+      "provider": "Zhipu",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "reasoning"
+      ],
+      "description": "Agentic reasoning and coding-focused model from Zhipu.",
+      "parameterSize": null,
+      "quantizationLevel": "BF16",
+      "contextLength": 200000,
+      "family": "glm",
+      "hasVision": false,
+      "hasTools": false
+    },
+    {
+      "name": "glm-5",
+      "displayName": "GLM 5",
+      "provider": "Zhipu",
+      "capabilities": [
+        "text-generation",
+        "reasoning",
+        "tool-use"
+      ],
+      "description": "Large-scale reasoning and agentic model built for complex system workflows.",
+      "parameterSize": "744B (40B active)",
+      "quantizationLevel": "BF16",
+      "contextLength": 200000,
+      "family": "glm",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "minimax-m2",
+      "displayName": "MiniMax M2",
+      "provider": "MiniMax",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "tool-use"
+      ],
+      "description": "High-efficiency model designed for coding and agentic workflows.",
+      "parameterSize": null,
+      "quantizationLevel": "BF16",
+      "contextLength": 200000,
+      "family": "minimax",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "minimax-m2.1",
+      "displayName": "MiniMax M2.1",
+      "provider": "MiniMax",
+      "capabilities": [
+        "text-generation",
+        "code"
+      ],
+      "description": "Improved multilingual model for coding and engineering workflows.",
+      "parameterSize": null,
+      "quantizationLevel": "BF16",
+      "contextLength": 200000,
+      "family": "minimax",
+      "hasVision": false,
+      "hasTools": false
+    },
+    {
+      "name": "minimax-m2.5",
+      "displayName": "MiniMax M2.5",
+      "provider": "MiniMax",
+      "capabilities": [
+        "text-generation",
+        "code"
+      ],
+      "description": "State-of-the-art model focused on productivity and coding tasks.",
+      "parameterSize": null,
+      "quantizationLevel": "BF16",
+      "contextLength": 204800,
+      "family": "minimax",
+      "hasVision": false,
+      "hasTools": false
+    },
+    {
+      "name": "minimax-m2.7",
+      "displayName": "MiniMax M2.7",
+      "provider": "MiniMax",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "agentic"
+      ],
+      "description": "Latest M2-series model optimized for coding, agent workflows, and professional productivity.",
+      "parameterSize": null,
+      "quantizationLevel": null,
+      "contextLength": 204800,
+      "family": "minimax",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "nemotron-3-nano:30b",
+      "displayName": "Nemotron 3 Nano 30B",
+      "provider": "NVIDIA",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "reasoning",
+        "tool-use"
+      ],
+      "description": "Efficient open model family for agentic tasks with strong reasoning and coding performance.",
+      "parameterSize": [
+        "30B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 1000000,
+      "family": "nemotron",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "nemotron-3-nano:4b",
+      "displayName": "Nemotron 3 Nano 4B",
+      "provider": "NVIDIA",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "reasoning",
+        "tool-use"
+      ],
+      "description": "Efficient open model family for agentic tasks with strong reasoning and coding performance.",
+      "parameterSize": [
+        "4B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 1000000,
+      "family": "nemotron",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "nemotron-3-super",
+      "displayName": "Nemotron 3 Super",
+      "provider": "NVIDIA",
+      "capabilities": [
+        "text-generation",
+        "reasoning",
+        "tool-use"
+      ],
+      "description": "120B MoE model activating ~12B parameters for efficient multi-agent applications.",
+      "parameterSize": "120B (12B active)",
+      "quantizationLevel": "BF16",
+      "contextLength": 1000000,
+      "family": "nemotron",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "qwen3",
+      "displayName": "Qwen 3",
+      "provider": "Alibaba",
+      "capabilities": [
+        "text-generation",
+        "tool-use",
+        "reasoning"
+      ],
+      "description": "General-purpose Qwen model family with strong reasoning and tool-use capabilities.",
+      "parameterSize": [
+        "0.8B",
+        "2B",
+        "4B",
+        "9B",
+        "27B",
+        "35B",
+        "122B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 262144,
+      "family": "qwen3",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "qwen3.5:397b",
+      "displayName": "Qwen 3",
+      "provider": "Alibaba",
+      "capabilities": [
+        "text-generation",
+        "tool-use",
+        "reasoning"
+      ],
+      "description": "General-purpose Qwen model family with strong reasoning and tool-use capabilities.",
+      "parameterSize": [
+        "397B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 262144,
+      "family": "qwen3",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "qwen3-next:80b",
+      "displayName": "Qwen 3 Next 80B",
+      "provider": "Alibaba",
+      "capabilities": [
+        "text-generation",
+        "reasoning",
+        "tool-use"
+      ],
+      "description": "Optimized Qwen model balancing parameter efficiency and inference speed.",
+      "parameterSize": "80B",
+      "quantizationLevel": "BF16",
+      "contextLength": 262144,
+      "family": "qwen3",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "qwen3-coder:30b",
+      "displayName": "Qwen 3 Coder 30B",
+      "provider": "Alibaba",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "tool-use"
+      ],
+      "description": "High-performance coding models for long-context and agentic programming.",
+      "parameterSize": [
+        "30B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "qwen3-coder",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "qwen3-coder:80b",
+      "displayName": "Qwen 3 Coder 80B",
+      "provider": "Alibaba",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "tool-use"
+      ],
+      "description": "High-performance coding models for long-context and agentic programming.",
+      "parameterSize": [
+        "80B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "qwen3-coder",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "qwen3-coder-next",
+      "displayName": "Qwen 3 Coder Next",
+      "provider": "Alibaba",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "tool-use"
+      ],
+      "description": "Optimized coding model for agentic workflows and local development.",
+      "parameterSize": null,
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "qwen3-coder",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "qwen3-vl:235b",
+      "displayName": "Qwen 3 VL 235B",
+      "provider": "Alibaba",
+      "capabilities": [
+        "text-generation",
+        "vision",
+        "tool-use",
+        "reasoning"
+      ],
+      "description": "Advanced multimodal model for vision-language understanding and reasoning.",
+      "parameterSize": [
+        "235B"
+      ],
+      "quantizationLevel": "BF16",
+      "contextLength": 262144,
+      "family": "qwen3-vl",
+      "hasVision": true,
+      "hasTools": true
+    },
+    {
+      "name": "kimi-k2",
+      "displayName": "Kimi K2",
+      "provider": "Moonshot AI",
+      "capabilities": [
+        "text-generation",
+        "reasoning"
+      ],
+      "description": "MoE language model with strong performance on coding and long-context tasks.",
+      "parameterSize": null,
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "kimi",
+      "hasVision": false,
+      "hasTools": false
+    },
+    {
+      "name": "kimi-k2:1t",
+      "displayName": "Kimi K2",
+      "provider": "Moonshot AI",
+      "capabilities": [
+        "text-generation",
+        "reasoning"
+      ],
+      "description": "MoE language model with strong performance on coding and long-context tasks.",
+      "parameterSize": "1t",
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "kimi",
+      "hasVision": false,
+      "hasTools": false
+    },
+    {
+      "name": "kimi-k2.5",
+      "displayName": "Kimi K2.5",
+      "provider": "Moonshot AI",
+      "capabilities": [
+        "text-generation",
+        "vision",
+        "reasoning",
+        "agentic"
+      ],
+      "description": "Multimodal agentic model supporting vision, reasoning, and conversational workflows.",
+      "parameterSize": null,
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "kimi",
+      "hasVision": true,
+      "hasTools": true
+    },
+    {
+      "name": "kimi-k2-thinking",
+      "displayName": "Kimi K2 Thinking",
+      "provider": "Moonshot AI",
+      "capabilities": [
+        "text-generation",
+        "reasoning"
+      ],
+      "description": "Reasoning-optimized variant of Kimi K2.",
+      "parameterSize": null,
+      "quantizationLevel": "INT4",
+      "contextLength": 256000,
+      "family": "kimi",
+      "hasVision": false,
+      "hasTools": false
+    },
+    {
+      "name": "deepseek-v3.1:671b",
+      "displayName": "DeepSeek V3.1 671B",
+      "provider": "DeepSeek",
+      "capabilities": [
+        "text-generation",
+        "reasoning",
+        "tool-use"
+      ],
+      "description": "Hybrid reasoning model supporting both thinking and non-thinking modes.",
+      "parameterSize": "671B",
+      "quantizationLevel": "BF16",
+      "contextLength": 128000,
+      "family": "deepseek",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "deepseek-v3.2",
+      "displayName": "DeepSeek V3.2",
+      "provider": "DeepSeek",
+      "capabilities": [
+        "text-generation",
+        "reasoning"
+      ],
+      "description": "Improved model balancing computational efficiency with strong reasoning performance.",
+      "parameterSize": null,
+      "quantizationLevel": "BF16/FP8",
+      "contextLength": 163840,
+      "family": "deepseek",
+      "hasVision": false,
+      "hasTools": false
+    },
+    {
+      "name": "devstral-2:123b",
+      "displayName": "Devstral  123B",
+      "provider": "Mistral",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "tool-use"
+      ],
+      "description": "Large coding-focused model designed for agent workflows and codebase navigation.",
+      "parameterSize": "123B",
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "devstral",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "devstral-small-2:24b",
+      "displayName": "Devstral Small 2 24B",
+      "provider": "Mistral",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "vision",
+        "tool-use"
+      ],
+      "description": "Compact coding model capable of tool use and multimodal workflows.",
+      "parameterSize": "24B",
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "devstral",
+      "hasVision": true,
+      "hasTools": true
+    },
+    {
+      "name": "mistral-large-3",
+      "displayName": "Mistral Large 3",
+      "provider": "Mistral",
+      "capabilities": [
+        "text-generation"
+      ],
+      "description": "Production-grade mixture-of-experts model for enterprise workloads.",
+      "parameterSize": "675B (12B active)",
+      "quantizationLevel": "BF16",
+      "contextLength": 256000,
+      "family": "mistral",
+      "hasVision": false,
+      "hasTools": false
+    },
+    {
+      "name": "cogito-2.1:671b",
+      "displayName": "Cogito 2.1 671B",
+      "provider": "Cogito",
+      "capabilities": [
+        "text-generation"
+      ],
+      "description": "Instruction-tuned open-weight models released under MIT license.",
+      "parameterSize": "671B",
+      "quantizationLevel": null,
+      "contextLength": 32768,
+      "family": "cogito",
+      "hasVision": false,
+      "hasTools": false
+    },
+    {
+      "name": "rnj-1:8b",
+      "displayName": "RNJ 1 8B",
+      "provider": "Essential AI",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "tool-use"
+      ],
+      "description": "8B dense model optimized for STEM and coding tasks.",
+      "parameterSize": "8B",
+      "quantizationLevel": "BF16",
+      "contextLength": 32768,
+      "family": "rnj",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "gpt-oss:120b",
+      "displayName": "GPT-OSS",
+      "provider": "OpenAI",
+      "capabilities": [
+        "text-generation",
+        "reasoning",
+        "tool-use"
+      ],
+      "description": "Open-weight reasoning models for agentic and developer workflows.",
+      "parameterSize": [
+        "120B"
+      ],
+      "quantizationLevel": "MXFP4",
+      "contextLength": 131072,
+      "family": "gpt-oss",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "gpt-oss:20b",
+      "displayName": "GPT-OSS",
+      "provider": "OpenAI",
+      "capabilities": [
+        "text-generation",
+        "reasoning",
+        "tool-use"
+      ],
+      "description": "Open-weight reasoning models for agentic and developer workflows.",
+      "parameterSize": [
+        "20B"
+      ],
+      "quantizationLevel": "MXFP4",
+      "contextLength": 131072,
+      "family": "gpt-oss",
+      "hasVision": false,
+      "hasTools": true
+    },
+    {
+      "name": "gemini-3-flash-preview",
+      "displayName": "Gemini 3 Flash Preview",
+      "provider": "Google",
+      "capabilities": [
+        "text-generation",
+        "multimodal",
+        "tool-use"
+      ],
+      "description": "Fast, cost-efficient multimodal model with frontier-level intelligence.",
+      "parameterSize": null,
+      "quantizationLevel": null,
+      "contextLength": 1000000,
+      "family": "gemini",
+      "hasVision": true,
+      "hasTools": true
+    }
+  ]
+}

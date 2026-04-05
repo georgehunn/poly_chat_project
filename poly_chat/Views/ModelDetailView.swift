@@ -1,0 +1,244 @@
+import SwiftUI
+
+struct ModelDetailView: View {
+    let model: ModelInfo
+    let onDismiss: () -> Void
+    @EnvironmentObject private var modelManager: ModelManager
+    @State private var detailedModel: ModelInfo?
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(model.displayName)
+                            .font(.title)
+                            .fontWeight(.bold)
+                        Spacer()
+                        if model.hasVision == true {
+                            TagView(text: "Vision", color: .blue)
+                        }
+                        if model.hasTools == true {
+                            TagView(text: "Tools", color: .green)
+                        }
+                    }
+
+                    Text(model.name)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.bottom, 8)
+
+                // Description
+                let description = detailedModel?.description ?? model.description
+                if let description = description, !description.isEmpty && description != "No description available" {
+                    SectionView(title: "Description") {
+                        Text(description)
+                            .font(.body)
+                    }
+                } else if isLoading {
+                    SectionView(title: "Description") {
+                        Text("Loading description...")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    SectionView(title: "Description") {
+                        Text("No detailed description available for this model.")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // Provider
+                SectionView(title: "Provider") {
+                    DetailRow(label: "Provider", value: model.provider)
+                }
+
+                // Technical Specifications
+                SectionView(title: "Technical Specifications") {
+                    VStack(spacing: 12) {
+                        if let parameterSize = detailedModel?.parameterSize ?? model.parameterSize {
+                            DetailRow(label: "Parameters", value: parameterSize)
+                        }
+
+                        if let quantizationLevel = detailedModel?.quantizationLevel ?? model.quantizationLevel {
+                            DetailRow(label: "Quantization", value: quantizationLevel)
+                        }
+
+                        if let family = detailedModel?.family ?? model.family {
+                            DetailRow(label: "Family", value: family)
+                        }
+
+                        if let contextLength = detailedModel?.contextLength ?? model.contextLength {
+                            DetailRow(label: "Context Length", value: "\(contextLength)")
+                        }
+                    }
+                }
+
+                // Capabilities
+                SectionView(title: "Capabilities") {
+                    VStack(spacing: 12) {
+                        CapabilityRow(
+                            label: "Text Generation",
+                            isEnabled: (detailedModel?.capabilities ?? model.capabilities).contains("text-generation")
+                        )
+
+                        CapabilityRow(
+                            label: "Vision/Multimodal",
+                            isEnabled: detailedModel?.hasVision ?? model.hasVision ?? false
+                        )
+
+                        CapabilityRow(
+                            label: "Tool Use",
+                            isEnabled: detailedModel?.hasTools ?? model.hasTools ?? false
+                        )
+                    }
+                }
+            }
+            .padding()
+        }
+        .navigationTitle("Model Details")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") {
+                    onDismiss()
+                }
+            }
+        }
+        .onAppear {
+            loadModelDetails()
+        }
+        .refreshable {
+            loadModelDetails()
+        }
+    }
+
+    private func loadModelDetails() {
+        guard detailedModel == nil && !isLoading else { return }
+
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+            do {
+                print("Loading detailed information for model: \(model.name)")
+                let detailed = try await modelManager.loadModelDetails(for: model)
+                print("Successfully loaded detailed model info - Description length: \(detailed.description?.count ?? 0)")
+                print("Description preview: \(String(describing: detailed.description?.prefix(200)))")
+
+                DispatchQueue.main.async {
+                    self.detailedModel = detailed
+                    self.isLoading = false
+                }
+            } catch {
+                print("Error loading model details for \(model.name): \(error)")
+                DispatchQueue.main.async {
+                    self.errorMessage = "Failed to load model details: \(error.localizedDescription)"
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+}
+
+struct SectionView<Content: View>: View {
+    let title: String
+    let content: Content
+
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .fontWeight(.semibold)
+
+            content
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
+        }
+    }
+}
+
+struct DetailRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .foregroundColor(.secondary)
+            Spacer()
+            Text(value)
+                .fontWeight(.medium)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+}
+
+struct CapabilityRow: View {
+    let label: String
+    let isEnabled: Bool
+
+    var body: some View {
+        HStack {
+            Text(label)
+            Spacer()
+            if isEnabled {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+            } else {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.red)
+            }
+        }
+    }
+}
+
+struct TagView: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        Text(text)
+            .font(.caption)
+            .fontWeight(.bold)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.2))
+            .foregroundColor(color)
+            .cornerRadius(6)
+    }
+}
+
+struct ModelDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationStack {
+            ModelDetailView(
+                model: ModelInfo(
+                    name: "llama3:latest",
+                    displayName: "Llama 3",
+                    provider: "Ollama",
+                    capabilities: ["text-generation"],
+                    description: "A state-of-the-art language model developed by Meta.",
+                    parameterSize: "8B",
+                    quantizationLevel: "Q4_K_M",
+                    family: "llama",
+                    contextLength: 8192,
+                    hasVision: false,
+                    hasTools: false
+                ),
+                onDismiss: {}
+            )
+            .environmentObject(ModelManager())
+        }
+    }
+}
