@@ -57,6 +57,12 @@ struct InfoView: View {
                                     Text("4. Paste your API key in Settings")
                                 }
                                 .padding(.top, 4)
+
+                            Link("Read about Ollama's cloud models and data processing", destination: URL(string: "https://ollama.com/blog/cloud-models")!)
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .underline()
+                                .padding(.top, 4)
                             }
 
                             Divider().padding(.vertical, 4)
@@ -98,11 +104,11 @@ struct InfoView: View {
                                 .fontWeight(.semibold)
                                 .padding(.top, 5)
 
-                            Text("1. Privacy first")
+                            Text("1. Control - Use the models you want, switch anytime.")
                                 .padding(.vertical, 2)
-                            Text("2. Transparency of models and data usage")
+                            Text("2. Privacy first - Your data stays on your device. No tracking.")
                                 .padding(.vertical, 2)
-                            Text("3. Democratic developement")
+                            Text("3. Useful > flashy - Useful features that support how people actually use AI.")
                                 .padding(.vertical, 2)
 
                         }

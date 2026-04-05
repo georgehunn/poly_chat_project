@@ -5,6 +5,13 @@ import UniformTypeIdentifiers
 import UIKit
 import WebKit
 
+private struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 struct ChatView: View {
     let conversationId: UUID
     @State private var messageText = ""
@@ -24,6 +31,11 @@ struct ChatView: View {
     @State private var showingNoAPIKeyAlert = false
     @State private var showingServerErrorAlert = false
     @State private var serverErrorMessage = ""
+    @State private var isNearBottom: Bool = true
+    @State private var userJustSentMessage: Bool = false
+    @State private var showScrollToBottomButton: Bool = false
+    @State private var unreadCount: Int = 0
+    @State private var scrollViewHeight: CGFloat = 0
     @FocusState private var inputFocused: Bool
     @EnvironmentObject private var chatManager: ChatManager
 
@@ -209,19 +221,102 @@ struct ChatView: View {
                 }
                 .padding(.horizontal)
 
-                ScrollView {
-                    LazyVStack {
-                        ForEach(conversation.messages) { message in
-                            if message.role != .system {
-                                MessageView(message: message, conversation: conversation) { msg, displayText in
-                                    editingMessage = msg
-                                    messageText = displayText
-                                    inputFocused = true
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack {
+                            ForEach(conversation.messages) { message in
+                                if message.role != .system {
+                                    MessageView(message: message, conversation: conversation) { msg, displayText in
+                                        editingMessage = msg
+                                        messageText = displayText
+                                        inputFocused = true
+                                    }
                                 }
                             }
+                            if chatManager.isLoading {
+                                loadingBubble
+                            }
+                            Color.clear.frame(height: 1).id("bottom")
                         }
-                        if chatManager.isLoading {
-                            loadingBubble
+                        .background(
+                            GeometryReader { contentGeometry in
+                                Color.clear.preference(
+                                    key: ScrollOffsetPreferenceKey.self,
+                                    value: contentGeometry.frame(in: .named("chatScroll")).maxY
+                                )
+                            }
+                        )
+                    }
+                    .coordinateSpace(name: "chatScroll")
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear.onAppear { scrollViewHeight = geo.size.height }
+                                .onChange(of: geo.size.height) { scrollViewHeight = $0 }
+                        }
+                    )
+                    .onPreferenceChange(ScrollOffsetPreferenceKey.self) { maxY in
+                        let nearBottom = maxY <= scrollViewHeight + 150
+                        if isNearBottom != nearBottom {
+                            isNearBottom = nearBottom
+                        }
+                        if isNearBottom {
+                            unreadCount = 0
+                        }
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showScrollToBottomButton = !isNearBottom
+                        }
+                    }
+                    .onAppear {
+                        proxy.scrollTo("bottom", anchor: .bottom)
+                    }
+                    .onChange(of: conversation.messages.count) { _ in
+                        if userJustSentMessage || isNearBottom {
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                proxy.scrollTo("bottom", anchor: .bottom)
+                            }
+                        } else {
+                            unreadCount += 1
+                        }
+                    }
+                    .onChange(of: chatManager.isLoading) { isLoading in
+                        if !isLoading {
+                            if userJustSentMessage || isNearBottom {
+                                withAnimation(.easeOut(duration: 0.3)) {
+                                    proxy.scrollTo("bottom", anchor: .bottom)
+                                }
+                            }
+                            userJustSentMessage = false
+                        }
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        if showScrollToBottomButton {
+                            Button {
+                                unreadCount = 0
+                                withAnimation(.easeOut(duration: 0.3)) {
+                                    proxy.scrollTo("bottom", anchor: .bottom)
+                                }
+                            } label: {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(.white)
+                                        .padding(12)
+                                        .background(Circle().fill(Color.blue.opacity(0.85)))
+                                        .shadow(radius: 3)
+                                    if unreadCount > 0 {
+                                        Text("\(min(unreadCount, 99))")
+                                            .font(.caption2.bold())
+                                            .foregroundStyle(.white)
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 2)
+                                            .background(Capsule().fill(Color.red))
+                                            .offset(x: 4, y: -4)
+                                    }
+                                }
+                            }
+                            .padding(.trailing, 16)
+                            .padding(.bottom, 12)
+                            .transition(.scale.combined(with: .opacity))
                         }
                     }
                 }
@@ -399,6 +494,8 @@ struct ChatView: View {
             let content = messageText
             messageText = ""
             editingMessage = nil
+            userJustSentMessage = true
+            unreadCount = 0
             Task {
                 do {
                     try await chatManager.updateMessage(msgToEdit.id, to: content, in: conversation)
@@ -419,6 +516,9 @@ struct ChatView: View {
 
         lastMessageToSend = messageText
         messageText = ""
+
+        userJustSentMessage = true
+        unreadCount = 0
 
         let fileURL = showingDocumentPreview?.0
         let image = selectedImage
