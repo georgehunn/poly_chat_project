@@ -12,8 +12,10 @@ struct PolyChatApp: App {
         WindowGroup {
             ContentView()
                 .onAppear {
-                    // Clean up old PDF files when app launches
                     Task {
+                        // Initialize premium provider (no-op in free build)
+                        await Premium.current.initialize()
+                        // Clean up old PDF files when app launches
                         await PDFDocumentService.shared.cleanupOldPDFFiles()
                     }
                 }

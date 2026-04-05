@@ -4,7 +4,7 @@ An open-source iOS chat application for interacting with AI models via Ollama an
 
 ## Overview
 
-PolyChat is a native iOS application that provides a seamless chat experience with locally-hosted and cloud AI models. Unlike proprietary solutions, PolyChat gives you full control over your data and model choices — all conversation data is stored locally on your device.
+PolyChat is a native iOS application that provides a seamless chat experience with open source cloud AI models. Unlike proprietary solutions, PolyChat gives you full control over your data and model choices — all conversation data is stored locally on your device.
 
 ## Open Source & Sustainability
 
@@ -55,7 +55,7 @@ If you prefer, you will always be able to use Poly_Chat free of charge, leveragi
 ### Customization & Privacy
 - **Dark Mode**: Built-in dark mode toggle
 - **System Prompt**: Customizable default system prompt for new conversations
-- **Privacy First**: All data stored locally, no telemetry
+- **Privacy First**: All data stored locally
 - **Data Export**: Export conversations as JSON
 - **Secure Storage**: API keys stored in Keychain
 
@@ -104,7 +104,7 @@ poly_chat/
 
 ### Prerequisites
 - Xcode 15.0 or higher
-- Ollama api key
+- A running [Ollama](https://ollama.com) instance (local or remote), or an API key for openAI compatible models
 
 ### Installation
 1. Clone or download this project
@@ -187,11 +187,12 @@ xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'pla
 - [ ] Multi-device sync (opt-in)
 - [ ] improve model details page (currently manual update)
 - [ ] Backup functionality with encryption
-- [ ] some way to understand how the app is being used to enable data driven developement (needs to be transparent and anonamouse)
+- [ ] way for users to share reviews on models etc. 
+- [ ] some way to understand how the app is being used to enable data driven development (needs to be transparent and anonymous)
 - [ ] stop button (when a model is thinking too long)
 - [ ] If app closed notification when finished thinking
 - [ ] indicator for ollama server availablity/speed??
-- [ ] premium websearch via paided api
+- [ ] premium web search via paid API
 - [ ] premium hosted models with faster compute
 
 
@@ -201,7 +202,7 @@ This project is licensed under the Apache License 2.0 - see the LICENSE file for
 
 ## Acknowledgments
 
-- [Ollama](https://ollama.com) for the excellent local AI model platform
+- [Ollama](https://ollama.com) for the excellent AI model platform
 - [Tavily](https://tavily.com) for the web search API
 - [MathJax](https://www.mathjax.org) for LaTeX rendering
 - SwiftUI community for the fantastic framework
