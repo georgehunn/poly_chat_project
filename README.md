@@ -1,15 +1,36 @@
 # PolyChat - iPhone AI Chat Application
 
-An open-source iOS chat application for interacting with AI models via Ollama, OpenAI, Grok, and other compatible providers.
+An open-source iOS chat application for interacting with AI models via Ollama and other compatible providers.
 
 ## Overview
 
 PolyChat is a native iOS application that provides a seamless chat experience with locally-hosted and cloud AI models. Unlike proprietary solutions, PolyChat gives you full control over your data and model choices — all conversation data is stored locally on your device.
 
+## Open Source & Sustainability
+
+Poly_Chat is open source and will always have a fully functional free core.
+
+You can:
+
+* Use the app with your own API keys
+* Access all essential functionality without paying
+
+To support ongoing development, we plan to introduce optional paid features in the future. These may include:
+
+* Cloud sync and backup
+* Hosted infrastructure (for convenience and speed)
+* Advanced features (e.g. workflows, agents, websearch, enhanced UI)
+
+Our commitment:
+We will never remove core functionality or force payment for basic usage. Paid features will focus on making the experience better — not restricting access.
+
+If you prefer, you will always be able to use Poly_Chat free of charge, leveraging existing free services.
+
+
 ## Features
 
 ### AI Providers
-- **Ollama**: Connect to local or remote Ollama instances
+- **Ollama**: Connect to remote Ollama instances
 
 ### Chat
 - **Multi-turn Conversations**: Full conversation history with context
@@ -36,7 +57,7 @@ PolyChat is a native iOS application that provides a seamless chat experience wi
 - **System Prompt**: Customizable default system prompt for new conversations
 - **Privacy First**: All data stored locally, no telemetry
 - **Data Export**: Export conversations as JSON
-- **Secure Storage**: API keys stored in Keychain, never in UserDefaults
+- **Secure Storage**: API keys stored in Keychain
 
 ## Technical Architecture
 
@@ -59,12 +80,11 @@ PolyChat is a native iOS application that provides a seamless chat experience wi
 4. If the model calls a tool (`web_search`, `get_current_date`), the tool runs and results are fed back (up to 3 tool iterations)
 5. Final response rendered in the chat view with markdown support
 6. Conversation title auto-generated from the first exchange (if untitled)
-7. Conversation persisted locally
+7. Conversation persisted locally (documents deleted if chat deleted)
 
 ### Security
 - API keys stored in Keychain (not UserDefaults)
 - No automatic data sharing with third parties
-- PDF files cleaned up from disk after 24 hours
 
 ## Project Structure
 
@@ -84,26 +104,15 @@ poly_chat/
 
 ### Prerequisites
 - Xcode 15.0 or higher
-- At least one of the following:
-  - **Ollama** installed locally (`brew install ollama`) with a model pulled
-  - An **OpenAI** API key
-  - A **Grok** API key from x.ai
+- Ollama api key
 
 ### Installation
 1. Clone or download this project
 2. Open `Poly_Chat.xcodeproj` in Xcode
 3. Select a simulator or connected device
-4. Press `Cmd+R` to build and run
+4. Build and run
 5. On first launch, configure your provider endpoint and API key in Settings
 
-### Running Ollama (local setup)
-```bash
-# Start Ollama service
-ollama serve
-
-# Pull a model to test with
-ollama pull llama3
-```
 
 ### Optional: Enable Web Search
 Sign up for a free Tavily API key at [tavily.com](https://tavily.com) and add it in Settings to enable the web search tool.
@@ -115,7 +124,6 @@ Sign up for a free Tavily API key at [tavily.com](https://tavily.com) and add it
 xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
 
-Or press `Cmd+U` in Xcode.
 
 ### Manual Testing Checklist
 1. Launch the app and configure a provider in Settings
@@ -134,7 +142,7 @@ Or press `Cmd+U` in Xcode.
 2. Route new AI capabilities through `ChatManager`
 3. Add new provider support via the `OpenAIBackendAdapter` pattern
 4. Add unit tests for new service logic
-5. Maintain local-first, privacy-focused data handling
+5. Maintain privacy-focused data handling
 
 ### Contributing
 1. Fork the repository
@@ -145,8 +153,7 @@ Or press `Cmd+U` in Xcode.
 ## Troubleshooting
 
 ### Cannot connect to Ollama
-- Ensure Ollama is running: `ollama serve`
-- Check the endpoint in Settings (default: `http://localhost:11434`)
+- Check the endpoint in Settings (default: `http://ollama.com/api`)
 - Verify firewall/network settings if using a remote instance
 
 ### No models appearing
@@ -167,12 +174,18 @@ Or press `Cmd+U` in Xcode.
  
 - [x] Model comparison view
 - [x] Document (PDF) processing
+- [x] Image processing
+- [x] markdown
+- [x] websearch
 - [ ] Any OpenAI-compatible API: Configurable endpoint + API key
 - [ ] Multi-device sync (opt-in)
+- [ ] improve model details page (currently manual update)
+- [ ] Backup functionality with encryption
+- [ ] stop button (when a model is thinking too long)
 
 ## License
 
-This project is open source and available under the MIT License.
+This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
 
 ## Acknowledgments
 
