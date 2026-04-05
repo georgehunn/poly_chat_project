@@ -183,7 +183,7 @@ xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'pla
 - [x] Image processing
 - [x] markdown
 - [x] websearch
-- [ ] Any OpenAI-compatible API: Configurable endpoint + API key
+- [x] Any OpenAI-compatible API: Configurable endpoint + API key
 - [ ] Multi-device sync (opt-in)
 - [ ] improve model details page (currently manual update)
 - [ ] Backup functionality with encryption
