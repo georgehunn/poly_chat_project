@@ -4,6 +4,8 @@ An open-source iOS chat application for interacting with AI models via Ollama an
 
 ## Overview
 
+## TestFlight Link https://testflight.apple.com/join/VVxXx65X
+
 PolyChat is a native iOS application that provides a seamless chat experience with open source cloud AI models. Unlike proprietary solutions, PolyChat gives you full control over your data and model choices — all conversation data is stored locally on your device.
 
 ## Open Source & Sustainability
@@ -172,9 +174,8 @@ xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'pla
 
 ## BUGS
  
-- [ ] starting a new chat while loading
-- [x] Document (PDF) processing
-- [x] Image processing
+- [x] starting a new chat while loading
+
 
 ## Roadmap
  
@@ -189,7 +190,7 @@ xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'pla
 - [ ] Backup functionality with encryption
 - [ ] way for users to share reviews on models etc. 
 - [ ] some way to understand how the app is being used to enable data driven development (needs to be transparent and anonymous)
-- [ ] stop button (when a model is thinking too long)
+- [x] stop button (when a model is thinking too long)
 - [ ] If app closed notification when finished thinking
 - [ ] indicator for ollama server availablity/speed??
 - [ ] premium web search via paid API
