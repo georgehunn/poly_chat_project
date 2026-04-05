@@ -99,6 +99,13 @@ struct InfoView: View {
                             Link("Visit our website to understand more about the project", destination: URL(string: "https://www.polychat.me")!)
                                 .foregroundColor(.blue)
                                 .underline()
+                            
+
+                            Link("Open Source project on github", destination: URL(string: "https://github.com/georgehunn/poly_chat_project")!)
+                                .foregroundColor(.blue)
+                                .underline()
+                            Text("If you like this app please give me a star and if you want to contribute please check out the github repo and reach out to me")
+                                .padding(.vertical, 2)
 
                             Text("Values:")
                                 .fontWeight(.semibold)
