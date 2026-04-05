@@ -170,6 +170,12 @@ xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'pla
 - The status indicator in Settings will show if the key is valid
 - Free tier allows 1,000 searches/month
 
+## BUGS
+ 
+- [ ] starting a new chat while loading
+- [x] Document (PDF) processing
+- [x] Image processing
+
 ## Roadmap
  
 - [x] Model comparison view
@@ -181,7 +187,13 @@ xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'pla
 - [ ] Multi-device sync (opt-in)
 - [ ] improve model details page (currently manual update)
 - [ ] Backup functionality with encryption
+- [ ] some way to understand how the app is being used to enable data driven developement (needs to be transparent and anonamouse)
 - [ ] stop button (when a model is thinking too long)
+- [ ] If app closed notification when finished thinking
+- [ ] indicator for ollama server availablity/speed??
+- [ ] premium websearch via paided api
+- [ ] premium hosted models with faster compute
+
 
 ## License
 

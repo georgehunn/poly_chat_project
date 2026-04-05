@@ -131,12 +131,20 @@ struct ChatView: View {
                     )
                     .disabled(chatManager.isLoading)
 
-                Button(action: sendMessage) {
-                    Image(systemName: "paperplane.fill")
-                        .foregroundColor(.blue)
+                if chatManager.isLoading && chatManager.activeConversationId == conversationId {
+                    Button(action: { chatManager.cancelActiveRequest() }) {
+                        Image(systemName: "stop.circle.fill")
+                            .foregroundColor(.red)
+                    }
+                    .padding(.trailing, 4)
+                } else {
+                    Button(action: sendMessage) {
+                        Image(systemName: "paperplane.fill")
+                            .foregroundColor(.blue)
+                    }
+                    .disabled((messageText.isEmpty && showingDocumentPreview == nil && selectedImage == nil) || chatManager.isLoading)
+                    .padding(.trailing, 4)
                 }
-                .disabled((messageText.isEmpty && showingDocumentPreview == nil && selectedImage == nil) || chatManager.isLoading)
-                .padding(.trailing, 4)
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -233,7 +241,7 @@ struct ChatView: View {
                                     }
                                 }
                             }
-                            if chatManager.isLoading {
+                            if chatManager.isLoading && chatManager.activeConversationId == conversationId {
                                 loadingBubble
                             }
                             Color.clear.frame(height: 1).id("bottom")

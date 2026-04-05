@@ -16,6 +16,7 @@ class ChatManager: ObservableObject {
         didSet { UserDefaults.standard.set(tavilyKeyInvalid, forKey: "tavilyKeyInvalid") }
     }
     @Published var sendError: NSError? = nil
+    @Published var activeConversationId: UUID? = nil
 
     private let storageService = LocalStorageService()
     private var activeSendTask: Task<Void, Never>? = nil
@@ -26,6 +27,18 @@ class ChatManager: ObservableObject {
 
     func loadConversations() {
         conversations = storageService.loadConversations()
+    }
+
+    private func conversationIndex(for id: UUID) -> Int? {
+        conversations.firstIndex(where: { $0.id == id })
+    }
+
+    func cancelActiveRequest() {
+        activeSendTask?.cancel()
+        activeSendTask = nil
+        isLoading = false
+        activeToolName = nil
+        activeConversationId = nil
     }
 
     func createNewConversation(model: ModelInfo) -> Conversation {
@@ -147,6 +160,7 @@ class ChatManager: ObservableObject {
         activeSendTask = Task { @MainActor [weak self] in
             guard let self else { return }
             self.isLoading = true
+            self.activeConversationId = conversation.id
 
             // Ask iOS for extra background execution time so the request survives
             // the user switching away from the app (grants up to ~3 minutes).
@@ -160,6 +174,7 @@ class ChatManager: ObservableObject {
 
             defer {
                 self.isLoading = false
+                self.activeConversationId = nil
                 if bgTaskID != .invalid {
                     UIApplication.shared.endBackgroundTask(bgTaskID)
                 }
@@ -174,6 +189,8 @@ class ChatManager: ObservableObject {
                     _ = try await self.sendMessage(message, in: conversation)
                 }
                 onSuccess?()
+            } catch is CancellationError {
+                // User cancelled — no error to show
             } catch {
                 self.sendError = error as NSError
             }
@@ -218,7 +235,7 @@ class ChatManager: ObservableObject {
         storageService.saveConversations(conversations)
 
         // Use regular flow
-        return try await sendRegularMessage(conversation: updatedConversation, atIndex: index)
+        return try await sendRegularMessage(conversation: updatedConversation, conversationId: conversation.id)
     }
 
     // MARK: - Web Search Tool Definition
@@ -261,7 +278,7 @@ class ChatManager: ObservableObject {
         return query
     }
 
-    private func sendRegularMessage(conversation: Conversation, atIndex index: Int) async throws -> String {
+    private func sendRegularMessage(conversation: Conversation, conversationId: UUID) async throws -> String {
         // Don't send tools when the latest user message has an image — vision queries are
         // descriptive and sending tool prompts causes some thinking models (e.g. Qwen3-VL)
         // to output meta-commentary about tool decisions instead of answering the question.
@@ -311,6 +328,7 @@ class ChatManager: ObservableObject {
 
                 let chatResponse: ChatServiceResponse
 
+                try Task.checkCancellation()
                 if let provider = ProviderManager.shared.getActiveProvider(),
                    provider.providerType == .openAI || provider.providerType == .grok {
                     print("[ToolLoop] Routing to OpenAI adapter (provider: \(provider.name))")
@@ -328,6 +346,7 @@ class ChatManager: ObservableObject {
                         tools: iterationTools
                     )
                 }
+                try Task.checkCancellation()
 
                 switch chatResponse {
                 case .text(let content, let thinking):
@@ -335,14 +354,14 @@ class ChatManager: ObservableObject {
                     if let t = thinking { print("[ToolLoop] Thinking trace: \(t.count) chars") }
                     print("[ToolLoop] ── END ────────────────────────────────────")
                     let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date(), thinkingContent: thinking)
-                    var updatedConversation = conversations[index]
+                    // Re-resolve index by ID so a new chat inserted since the request started
+                    // doesn't cause the response to land in the wrong conversation.
+                    guard let idx = conversationIndex(for: conversationId) else { return content }
+                    var updatedConversation = conversations[idx]
                     updatedConversation.messages.append(assistantMessage)
                     updatedConversation.updatedAt = Date()
-                    let savedConversation = updatedConversation
-                    DispatchQueue.main.async {
-                        self.conversations[index] = savedConversation
-                        self.storageService.saveConversations(self.conversations)
-                    }
+                    conversations[idx] = updatedConversation
+                    storageService.saveConversations(conversations)
 
                     if needsTitleUpdate(conversation: updatedConversation) {
                         Task { [weak self] in
@@ -443,14 +462,12 @@ class ChatManager: ObservableObject {
             print("[ToolLoop] Synthetic prompt answer (\(content.count) chars)")
             print("[ToolLoop] ── END (synthetic) ───────────────────────────")
             let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date(), thinkingContent: thinking)
-            var updatedConversationForced = conversations[index]
+            guard let idxForced = conversationIndex(for: conversationId) else { return content }
+            var updatedConversationForced = conversations[idxForced]
             updatedConversationForced.messages.append(assistantMessage)
             updatedConversationForced.updatedAt = Date()
-            let savedForced = updatedConversationForced
-            DispatchQueue.main.async {
-                self.conversations[index] = savedForced
-                self.storageService.saveConversations(self.conversations)
-            }
+            conversations[idxForced] = updatedConversationForced
+            storageService.saveConversations(conversations)
             if needsTitleUpdate(conversation: updatedConversationForced) {
                 Task { [weak self] in await self?.updateTitleForConversation(updatedConversationForced) }
             }
@@ -472,14 +489,12 @@ class ChatManager: ObservableObject {
             print("[ToolLoop] Fallback succeeded (\(content.count) chars)")
             print("[ToolLoop] ── END (fallback) ─────────────────────")
             let assistantMessage = Message(id: UUID(), role: .assistant, content: content, timestamp: Date(), thinkingContent: thinking)
-            var updatedConversationFallback = conversations[index]
+            guard let idxFallback = conversationIndex(for: conversationId) else { return content }
+            var updatedConversationFallback = conversations[idxFallback]
             updatedConversationFallback.messages.append(assistantMessage)
             updatedConversationFallback.updatedAt = Date()
-            let savedFallback = updatedConversationFallback
-            DispatchQueue.main.async {
-                self.conversations[index] = savedFallback
-                self.storageService.saveConversations(self.conversations)
-            }
+            conversations[idxFallback] = updatedConversationFallback
+            storageService.saveConversations(conversations)
             if needsTitleUpdate(conversation: updatedConversationFallback) {
                 Task { [weak self] in await self?.updateTitleForConversation(updatedConversationFallback) }
             }
@@ -488,18 +503,17 @@ class ChatManager: ObservableObject {
         } catch {
             print("[ToolLoop] CAUGHT ERROR: \(error)")
             print("[ToolLoop] ── END (error) ──────────────────────────")
+            activeToolName = nil
             let errorContent = "Error: \(error.localizedDescription)"
             let errorMsg = Message(id: UUID(), role: .assistant, content: errorContent, timestamp: Date())
-            var errorConversation = conversations[index]
-            errorConversation.messages.append(errorMsg)
-            errorConversation.updatedAt = Date()
-            let savedError = errorConversation
-            DispatchQueue.main.async {
-                self.activeToolName = nil
-                self.conversations[index] = savedError
-                self.storageService.saveConversations(self.conversations)
-                self.errorMessage = error.localizedDescription
+            if let idxError = conversationIndex(for: conversationId) {
+                var errorConversation = conversations[idxError]
+                errorConversation.messages.append(errorMsg)
+                errorConversation.updatedAt = Date()
+                conversations[idxError] = errorConversation
+                storageService.saveConversations(conversations)
             }
+            errorMessage = error.localizedDescription
             throw error
         }
     }
@@ -556,7 +570,7 @@ class ChatManager: ObservableObject {
         // Resend to get a fresh AI response for the edited message
         isLoading = true
         defer { isLoading = false }
-        _ = try await sendRegularMessage(conversation: updatedConversation, atIndex: index)
+        _ = try await sendRegularMessage(conversation: updatedConversation, conversationId: conversation.id)
     }
 
     /// Update conversation title using LLM based on message content
