@@ -22,18 +22,49 @@ struct InfoView: View {
                     // How to Use
                     InfoSectionView(title: "How to Use Poly_Chat") {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("1. Follow API key setup instructions below")
+                            Text("1. Follow API key setup instructions (below)")
                                 .padding(.vertical, 2)
-                            Text("2. Explore available models by tapping the 💻 icon")
+                            Text("2. Explore models by tapping the 💻 icon")
                                 .padding(.vertical, 2)
                             Text("3. Start a new chat by tapping the ✏️ icon")
                                 .padding(.vertical, 2)
-                            Text("4. Select a model from the list when prompted")
+                            Text("4. Choose a model when prompted")
                                 .padding(.vertical, 2)
                             Text("5. Type your message and tap send")
                                 .padding(.vertical, 2)
                         }
                     }
+                    // Ollama Information
+                    InfoSectionView(title: "About Poly_Chat") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Poly_Chat is an open source oroject that allows you to access LLMs via api while keeping ownership over your data. We save nothing on the cloud (check with api provider for their specific policy)")
+                                .padding(.bottom, 5)
+
+                            Link("Project website", destination: URL(string: "https://www.polychat.me")!)
+                                .foregroundColor(.blue)
+                                .underline()
+                            
+
+                            Link("Project on github", destination: URL(string: "https://github.com/georgehunn/poly_chat_project")!)
+                                .foregroundColor(.blue)
+                                .underline()
+                            Text("If you enjoy this app, please consider giving it a star ⭐️. If you'd like to contribute, check out the GitHub repo or feel free to reach out.")
+                                .padding(.vertical, 2)
+
+                            Text("Values:")
+                                .fontWeight(.semibold)
+                                .padding(.top, 5)
+
+                            Text("1. Control - Use the models you want, switch anytime.")
+                                .padding(.vertical, 2)
+                            Text("2. Privacy first - Your data stays on your device.")
+                                .padding(.vertical, 2)
+                            Text("3. Useful > flashy - Useful features that support how people actually use AI.")
+                                .padding(.vertical, 2)
+
+                        }
+                    }
+
 
                     // API Key Information
                     InfoSectionView(title: "API Key Information") {
@@ -64,7 +95,22 @@ struct InfoView: View {
                                 .underline()
                                 .padding(.top, 4)
                             }
+                            Divider().padding(.vertical, 4)
+                            // MARK: - General API Endpoint Section
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Other API endpoints")
+                                    .font(.headline)
 
+                                Text("Connect to any OpenAI-compatible API endpoint. Models from these endpoints will appear alongside Ollama models when starting a new chat. Note: Some endpoints may not support chat or all features (e.g. tools, multi-turn). Check the documentation for required configuration.")
+                                    .foregroundColor(.secondary)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("1. Set up you api key with your provider")
+                                    Text("2. Enter your API endpoint URL and key in Settings")
+                                    Text("3. Test your connection and start chatting!")
+                                }
+                                .padding(.top, 4)
+                            }
                             Divider().padding(.vertical, 4)
 
                             // MARK: - Tavily Section
@@ -93,18 +139,18 @@ struct InfoView: View {
                     // Ollama Information
                     InfoSectionView(title: "About Poly_Chat") {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Poly_Chat allows you to access LLMs via api while keeping ownership over your data - nothing is saved on the cloud")
+                            Text("Poly_Chat is an open source oroject that allows you to access LLMs via api while keeping ownership over your data. We save nothing on the cloud (check with api provider for their specific policy)")
                                 .padding(.bottom, 5)
 
-                            Link("Visit our website to understand more about the project", destination: URL(string: "https://www.polychat.me")!)
+                            Link("Project website", destination: URL(string: "https://www.polychat.me")!)
                                 .foregroundColor(.blue)
                                 .underline()
                             
 
-                            Link("Open Source project on github", destination: URL(string: "https://github.com/georgehunn/poly_chat_project")!)
+                            Link("Project on github", destination: URL(string: "https://github.com/georgehunn/poly_chat_project")!)
                                 .foregroundColor(.blue)
                                 .underline()
-                            Text("If you like this app please give me a star and if you want to contribute please check out the github repo and reach out to me")
+                            Text("If you enjoy this app, please consider giving it a star ⭐️. If you'd like to contribute, check out the GitHub repo or feel free to reach out.")
                                 .padding(.vertical, 2)
 
                             Text("Values:")
@@ -124,13 +170,13 @@ struct InfoView: View {
                     // Tips
                     InfoSectionView(title: "Tips") {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("• Different models have different strengths and capabilities")
+                            Text("Different models have different strengths and capabilities")
                                 .padding(.vertical, 2)
-                            Text("• Larger models generally provide better responses but use more resources")
+                            Text("Larger models generally provide better responses but use more resources")
                                 .padding(.vertical, 2)
-                            Text("• Check model details to understand their capabilities before use")
+                            Text("Check model details to understand their capabilities before use")
                                 .padding(.vertical, 2)
-                            Text("• You can export and backup your conversations from Settings")
+                            Text("You can export and backup your conversations from Settings")
                                 .padding(.vertical, 2)
                         }
                     }

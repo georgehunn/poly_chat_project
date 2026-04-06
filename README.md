@@ -188,14 +188,14 @@ xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'pla
 - [x] markdown
 - [x] websearch
 - [x] Any OpenAI-compatible API: Configurable endpoint + API key
+- [x] stop button (when a model is thinking too long)
+- [ ] Improve model details page (currently manual update - database connection with list of modules and details,tags,capabilities etc.)
+- [ ] Way for users to share reviews on models. 
+- [ ] Optional backup functionality with encryption
+- [ ] some way to understand how the app is being used - to enable data driven development (needs to be transparent and anonymous)
 - [ ] Multi-device sync (opt-in)
 - [ ] desktop or web version
 - [ ] ipad version
-- [ ] improve model details page (currently manual update)
-- [ ] Optional backup functionality with encryption
-- [ ] way for users to share reviews on models etc. 
-- [ ] some way to understand how the app is being used - to enable data driven development (needs to be transparent and anonymous)
-- [x] stop button (when a model is thinking too long)
 - [ ] If app is closed - notification when results arrive
 - [ ] premium web search via paid API
 - [ ] premium hosted models with faster compute

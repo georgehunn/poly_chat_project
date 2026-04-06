@@ -81,6 +81,10 @@ struct SettingsView: View {
                     Text("Add any OpenAI-compatible API endpoint. Models from these endpoints will appear alongside Ollama models when starting a new chat.")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    .foregroundColor(.accentColor)
+                    Text("Note: Some endpoints may not support chat or all features (e.g. tools, multi-turn). Check the documentation for required configuration.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
 
                 Section(header: Text("Web Search")) {
