@@ -43,11 +43,11 @@ struct ModelsView: View {
                 } else {
                     let providers: [String] = {
                         var seen = Set<String>()
-                        return sortedModels.map { $0.provider }.filter { seen.insert($0).inserted }
+                        return sortedModels.map { $0.apiProviderName }.filter { seen.insert($0).inserted }
                     }()
                     ForEach(providers, id: \.self) { providerName in
                         Section(header: Text(providerName)) {
-                            ForEach(sortedModels.filter { $0.provider == providerName }, id: \.name) { model in
+                            ForEach(sortedModels.filter { $0.apiProviderName == providerName }, id: \.name) { model in
                                 NavigationLink(value: model) {
                                     ModelRowView(model: model, isStarred: modelManager.isStarred(model))
                                 }

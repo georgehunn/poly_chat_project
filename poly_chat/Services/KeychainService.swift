@@ -7,18 +7,20 @@ class KeychainService {
     private init() {}
 
     func save(service: String, account: String, data: Data) -> Bool {
-        let query: [String: Any] = [
+        // Use only search attributes for deletion
+        let deleteQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecValueData as String: data
+            kSecAttrAccount as String: account
         ]
 
         // Delete any existing item
-        SecItemDelete(query as CFDictionary)
+        SecItemDelete(deleteQuery as CFDictionary)
 
-        // Add the new item
-        let status = SecItemAdd(query as CFDictionary, nil)
+        // Add the new item (includes the data to store)
+        var addQuery = deleteQuery
+        addQuery[kSecValueData as String] = data
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
         return status == errSecSuccess
     }
 

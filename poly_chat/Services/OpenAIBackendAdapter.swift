@@ -225,12 +225,37 @@ extension OpenAIBackendAdapter {
             guard let id = modelDict["id"] as? String else { return nil }
             return ModelInfo(
                 name: id,
-                displayName: id,
+                displayName: Self.prettifyModelId(id),
                 provider: provider.name,
                 capabilities: ["text-generation"],
                 providerId: provider.id
             )
         }
+    }
+
+    /// Turns a raw model ID like "models/gemini-2.0-flash-lite" or "grok-4-fast-reasoning"
+    /// into a human-friendly display name like "Gemini 2.0 Flash Lite" or "Grok 4 Fast Reasoning".
+    static func prettifyModelId(_ id: String) -> String {
+        var name = id
+
+        // Strip common path prefixes (e.g. "models/", "accounts/.../models/")
+        if let lastSlash = name.lastIndex(of: "/") {
+            name = String(name[name.index(after: lastSlash)...])
+        }
+
+        // Replace separators with spaces
+        name = name.replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+
+        // Capitalize each word, preserving version-like tokens (e.g. "2.0", "4o")
+        let words = name.split(separator: " ").map { word -> String in
+            let w = String(word)
+            // Leave alone if it starts with a digit — e.g. "2.0", "4o", "3.5"
+            if w.first?.isNumber == true { return w }
+            return w.prefix(1).uppercased() + w.dropFirst()
+        }
+
+        return words.joined(separator: " ")
     }
 }
 

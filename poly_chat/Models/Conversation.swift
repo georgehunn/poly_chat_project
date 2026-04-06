@@ -136,4 +136,8 @@ struct ModelInfo: Codable, Hashable {
         self.hasVision = hasVision
         self.hasTools = hasTools
     }
+
+    var apiProviderName: String {
+        providerId == nil ? "Ollama" : provider
+    }
 }

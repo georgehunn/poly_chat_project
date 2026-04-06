@@ -51,11 +51,11 @@ struct ModelSelectionView: View {
                     let unstarred = allSorted.filter { !modelManager.isStarred($0) }
                     let providers: [String] = {
                         var seen = Set<String>()
-                        return unstarred.map { $0.provider }.filter { seen.insert($0).inserted }
+                        return unstarred.map { $0.apiProviderName }.filter { seen.insert($0).inserted }
                     }()
                     ForEach(providers, id: \.self) { providerName in
                         Section(header: Text(providerName)) {
-                            ForEach(unstarred.filter { $0.provider == providerName }, id: \.name) { model in
+                            ForEach(unstarred.filter { $0.apiProviderName == providerName }, id: \.name) { model in
                                 modelSelectionRow(model)
                             }
                         }
@@ -72,10 +72,10 @@ struct ModelSelectionView: View {
             }
         }
         .onAppear {
-            if modelManager.allModels.isEmpty && !modelManager.isLoading {
+            if modelManager.models.isEmpty && !modelManager.isLoading {
                 modelManager.loadModels()
-                modelManager.loadCustomModels()
             }
+            modelManager.loadCustomModels()
         }
         .alert("Configuration Required", isPresented: $showingConfigAlert) {
             Button("Cancel", role: .cancel) { }
