@@ -9,8 +9,8 @@ class OllamaService {
 
     private lazy var session: URLSession = {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 90
-        config.timeoutIntervalForResource = 300
+        config.timeoutIntervalForRequest = 300
+        config.timeoutIntervalForResource = 600
         return URLSession(configuration: config)
     }()
 

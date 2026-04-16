@@ -181,7 +181,8 @@ struct ChatView: View {
             } message: {
                 Text(serverErrorMessage)
             }
-            .alert("Document Processing Error", isPresented: $showingDocumentErrorAlert) {
+            .alert("Request Failed", isPresented: $showingDocumentErrorAlert) {
+                Button("Retry") { retrySend() }
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(documentErrorMessage)
@@ -275,12 +276,12 @@ struct ChatView: View {
                         }
                     }
                     .onAppear {
-                        proxy.scrollTo("bottom", anchor: .bottom)
+                        scrollToBottom(proxy, animated: false)
                     }
                     .onChange(of: conversation.messages.count) { _ in
                         if userJustSentMessage || isNearBottom {
-                            withAnimation(.easeOut(duration: 0.3)) {
-                                proxy.scrollTo("bottom", anchor: .bottom)
+                            if let lastMessage = conversation.messages.last {
+                                scrollToMessage(lastMessage.id, proxy: proxy)
                             }
                         } else {
                             unreadCount += 1
@@ -289,9 +290,7 @@ struct ChatView: View {
                     .onChange(of: chatManager.isLoading) { isLoading in
                         if !isLoading {
                             if userJustSentMessage || isNearBottom {
-                                withAnimation(.easeOut(duration: 0.3)) {
-                                    proxy.scrollTo("bottom", anchor: .bottom)
-                                }
+                                scrollToBottom(proxy)
                             }
                             userJustSentMessage = false
                         }
@@ -300,9 +299,7 @@ struct ChatView: View {
                         if showScrollToBottomButton {
                             Button {
                                 unreadCount = 0
-                                withAnimation(.easeOut(duration: 0.3)) {
-                                    proxy.scrollTo("bottom", anchor: .bottom)
-                                }
+                                scrollToBottom(proxy)
                             } label: {
                                 ZStack(alignment: .topTrailing) {
                                     Image(systemName: "arrow.down.circle.fill")
@@ -544,6 +541,36 @@ struct ChatView: View {
                 showingDocumentPreview = nil
             }
         )
+    }
+
+    private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool = true) {
+        DispatchQueue.main.async {
+            proxy.scrollTo("bottom", anchor: .bottom)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            if animated {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo("bottom", anchor: .bottom)
+                }
+            } else {
+                proxy.scrollTo("bottom", anchor: .bottom)
+            }
+        }
+    }
+
+    private func scrollToMessage(_ id: UUID, proxy: ScrollViewProxy, animated: Bool = true) {
+        DispatchQueue.main.async {
+            proxy.scrollTo(id, anchor: .top)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            if animated {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo(id, anchor: .top)
+                }
+            } else {
+                proxy.scrollTo(id, anchor: .top)
+            }
+        }
     }
 }
 

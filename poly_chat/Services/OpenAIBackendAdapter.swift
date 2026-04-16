@@ -163,13 +163,20 @@ class OpenAIBackendAdapter: BackendAdapter {
 // MARK: - Retry Helper
 
 extension OpenAIBackendAdapter {
+    private static let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 300
+        config.timeoutIntervalForResource = 600
+        return URLSession(configuration: config)
+    }()
+
     /// Retries a URLRequest up to 3 times for transient server errors (503, 429).
     /// Uses exponential backoff: 1s, 2s, 4s.
     private func dataWithRetry(request: URLRequest, maxAttempts: Int = 3) async throws -> (Data, URLResponse) {
         var lastError: Error?
         for attempt in 0..<maxAttempts {
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await OpenAIBackendAdapter.session.data(for: request)
                 if let http = response as? HTTPURLResponse,
                    (http.statusCode == 503 || http.statusCode == 429),
                    attempt < maxAttempts - 1 {
