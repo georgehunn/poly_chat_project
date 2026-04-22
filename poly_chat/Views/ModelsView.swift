@@ -13,11 +13,19 @@ struct ModelsView: View {
         NavigationStack(path: $navigationPath) {
             List {
                 if !modelManager.allModels.isEmpty {
-                    Section(header: Text("Information")) {
-                        Text("Tap on any model below to view detailed information including technical specifications, capabilities, and descriptions. Swipe right to star your favorite models for quick access later.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                    Section(header: Text("Legend")) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Tap a model to view full details. Swipe right to star.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            HStack(spacing: 8) {
+                                CapabilityBadge(icon: "eye.fill",                    label: "Vision", color: .purple)
+                                CapabilityBadge(icon: "curlybraces",                 label: "Code",   color: .blue)
+                                CapabilityBadge(icon: "brain",                       label: "Think",  color: .indigo)
+                                CapabilityBadge(icon: "wrench.and.screwdriver.fill", label: "Tools",  color: .orange)
+                            }
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
 
@@ -109,6 +117,14 @@ struct ModelsView: View {
     }
 }
 
+private func formatContextLength(_ length: Int) -> String {
+    if length >= 1_000_000 {
+        let m = Double(length) / 1_000_000
+        return m.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(m))M" : String(format: "%.1fM", m)
+    }
+    return "\(length / 1000)K"
+}
+
 struct ModelRowView: View {
     let model: ModelInfo
     var isStarred: Bool = false
@@ -173,14 +189,20 @@ struct ModelRowView: View {
             VStack(alignment: .trailing, spacing: 6) {
                 HStack(spacing: 4) {
                     if model.hasVision == true {
-                        CapabilityBadge(icon: "eye.fill", label: "Vision", color: .purple)
+                        CapabilityBadge(icon: "eye.fill", label: "Vision", color: .purple, showLabel: false)
+                    }
+                    if model.capabilities.contains("code") {
+                        CapabilityBadge(icon: "curlybraces", label: "Code", color: .blue, showLabel: false)
+                    }
+                    if model.capabilities.contains("reasoning") {
+                        CapabilityBadge(icon: "brain", label: "Think", color: .indigo, showLabel: false)
                     }
                     if model.hasTools == true {
-                        CapabilityBadge(icon: "wrench.and.screwdriver.fill", label: "Tools", color: .orange)
+                        CapabilityBadge(icon: "wrench.and.screwdriver.fill", label: "Tools", color: .orange, showLabel: false)
                     }
                 }
                 if let contextLength = model.contextLength {
-                    Text("\(contextLength / 1000)k ctx")
+                    Text(formatContextLength(contextLength))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -194,16 +216,19 @@ struct CapabilityBadge: View {
     let icon: String
     let label: String
     let color: Color
+    var showLabel: Bool = true
 
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: showLabel ? 3 : 0) {
             Image(systemName: icon)
                 .font(.system(size: 9, weight: .semibold))
-            Text(label)
-                .font(.system(size: 10, weight: .semibold))
+            if showLabel {
+                Text(label)
+                    .font(.system(size: 10, weight: .semibold))
+            }
         }
         .foregroundColor(color)
-        .padding(.horizontal, 6)
+        .padding(.horizontal, showLabel ? 6 : 5)
         .padding(.vertical, 3)
         .background(color.opacity(0.12))
         .clipShape(Capsule())
@@ -456,7 +481,7 @@ struct ComparisonGridView: View {
                         .frame(width: 100, alignment: .leading)
                     Spacer()
                     if let ctx1 = model1.contextLength {
-                        Text("\(ctx1)")
+                        Text(formatContextLength(ctx1))
                             .font(.body)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     } else {
@@ -467,7 +492,7 @@ struct ComparisonGridView: View {
                     }
                     Spacer()
                     if let ctx2 = model2.contextLength {
-                        Text("\(ctx2)")
+                        Text(formatContextLength(ctx2))
                             .font(.body)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     } else {
@@ -484,99 +509,44 @@ struct ComparisonGridView: View {
 
             Divider()
 
-            // Capabilities Section
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Capabilities")
-                    .font(.headline)
-                    .fontWeight(.semibold)
+            // Capabilities Section — dynamic across both models' capability arrays
+            let allCaps: [String] = {
+                var seen = Set<String>()
+                return (model1.capabilities + model2.capabilities).filter { seen.insert($0).inserted }
+            }()
+            if !allCaps.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Capabilities")
+                        .font(.headline)
+                        .fontWeight(.semibold)
 
-                // Text Generation
-                HStack(alignment: .center, spacing: 12) {
-                    Text("Text Generation")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .frame(width: 120, alignment: .leading)
-                    Spacer()
-                    if (model1.capabilities.contains("text-generation")) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.body)
-                    } else {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.red)
-                            .font(.body)
-                    }
-                    Spacer()
-                    if (model2.capabilities.contains("text-generation")) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.body)
-                    } else {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.red)
-                            .font(.body)
+                    ForEach(allCaps, id: \.self) { cap in
+                        let info = ModelCapabilityInfo.from(cap)
+                        HStack(alignment: .center, spacing: 12) {
+                            HStack(spacing: 6) {
+                                Image(systemName: info.icon)
+                                    .foregroundColor(info.color)
+                                    .frame(width: 16)
+                                Text(info.label)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(width: 140, alignment: .leading)
+                            .font(.subheadline)
+                            Spacer()
+                            Image(systemName: model1.capabilities.contains(cap) ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundColor(model1.capabilities.contains(cap) ? .green : .red)
+                                .font(.body)
+                            Spacer()
+                            Image(systemName: model2.capabilities.contains(cap) ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundColor(model2.capabilities.contains(cap) ? .green : .red)
+                                .font(.body)
+                        }
                     }
                 }
-
-                // Vision/Multimodal
-                HStack(alignment: .center, spacing: 12) {
-                    Text("Vision/Multimodal")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .frame(width: 120, alignment: .leading)
-                    Spacer()
-                    if model1.hasVision == true {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.body)
-                    } else {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.red)
-                            .font(.body)
-                    }
-                    Spacer()
-                    if model2.hasVision == true {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.body)
-                    } else {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.red)
-                            .font(.body)
-                    }
-                }
-
-                // Tool Use
-                HStack(alignment: .center, spacing: 12) {
-                    Text("Tool Use")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .frame(width: 120, alignment: .leading)
-                    Spacer()
-                    if model1.hasTools == true {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.body)
-                    } else {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.red)
-                            .font(.body)
-                    }
-                    Spacer()
-                    if model2.hasTools == true {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.body)
-                    } else {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.red)
-                            .font(.body)
-                    }
-                }
+                .padding(.horizontal)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
             }
-            .padding(.horizontal)
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(8)
         }
         .padding()
         .background(Color(.systemBackground))

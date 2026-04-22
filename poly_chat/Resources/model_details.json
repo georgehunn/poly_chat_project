@@ -10,14 +10,10 @@
         "tool-use"
       ],
       "description": "Edge-optimized multimodal model family designed to run efficiently across a wide range of hardware.",
-      "parameterSize": [
-        "3B"
-      ],
+      "parameterSize": "3B",
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "ministral",
-      "hasVision": true,
-      "hasTools": true
+      "family": "ministral"
     },
     {
       "name": "ministral-3:8b",
@@ -29,14 +25,10 @@
         "tool-use"
       ],
       "description": "Edge-optimized multimodal model family designed to run efficiently across a wide range of hardware.",
-      "parameterSize": [
-        "8B"
-      ],
+      "parameterSize": "8B",
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "ministral",
-      "hasVision": true,
-      "hasTools": true
+      "family": "ministral"
     },
     {
       "name": "ministral-3:14b",
@@ -48,14 +40,10 @@
         "tool-use"
       ],
       "description": "Edge-optimized multimodal model family designed to run efficiently across a wide range of hardware.",
-      "parameterSize": [
-        "14B"
-      ],
+      "parameterSize": "14B",
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "ministral",
-      "hasVision": true,
-      "hasTools": true
+      "family": "ministral"
     },
     {
       "name": "ministral-large-3:675b",
@@ -67,14 +55,10 @@
         "tool-use"
       ],
       "description": "Edge-optimized multimodal model family designed to run efficiently across a wide range of hardware.",
-      "parameterSize": [
-        "675B"
-      ],
+      "parameterSize": "675B",
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "ministral",
-      "hasVision": true,
-      "hasTools": true
+      "family": "ministral"
     },
     {
       "name": "gemma3:12b",
@@ -85,14 +69,10 @@
         "vision"
       ],
       "description": "Google’s latest open multimodal model family designed for strong performance on a single GPU.",
-      "parameterSize": [
-        "12B"
-      ],
+      "parameterSize": "12B",
       "quantizationLevel": "BF16",
       "contextLength": 128000,
-      "family": "gemma3",
-      "hasVision": true,
-      "hasTools": false
+      "family": "gemma3"
     },
     {
       "name": "gemma3:27b",
@@ -103,14 +83,10 @@
         "vision"
       ],
       "description": "Google’s latest open multimodal model family designed for strong performance on a single GPU.",
-      "parameterSize": [
-        "27B"
-      ],
+      "parameterSize": "27B",
       "quantizationLevel": "BF16",
       "contextLength": 128000,
-      "family": "gemma3",
-      "hasVision": true,
-      "hasTools": false
+      "family": "gemma3"
     },
     {
       "name": "gemma3:4b",
@@ -121,14 +97,10 @@
         "vision"
       ],
       "description": "Google’s latest open multimodal model family designed for strong performance on a single GPU.",
-      "parameterSize": [
-        "4B"
-      ],
+      "parameterSize": "4B",
       "quantizationLevel": "BF16",
       "contextLength": 128000,
-      "family": "gemma3",
-      "hasVision": true,
-      "hasTools": false
+      "family": "gemma3"
     },
     {
       "name": "glm-4.7",
@@ -142,9 +114,7 @@
       "parameterSize": null,
       "quantizationLevel": "BF16",
       "contextLength": 200000,
-      "family": "glm",
-      "hasVision": false,
-      "hasTools": false
+      "family": "glm"
     },
     {
       "name": "glm-4.6",
@@ -159,9 +129,7 @@
       "parameterSize": null,
       "quantizationLevel": "BF16",
       "contextLength": 200000,
-      "family": "glm",
-      "hasVision": false,
-      "hasTools": false
+      "family": "glm"
     },
     {
       "name": "glm-5",
@@ -176,9 +144,7 @@
       "parameterSize": "744B (40B active)",
       "quantizationLevel": "BF16",
       "contextLength": 200000,
-      "family": "glm",
-      "hasVision": false,
-      "hasTools": true
+      "family": "glm"
     },
     {
       "name": "minimax-m2",
@@ -193,9 +159,7 @@
       "parameterSize": null,
       "quantizationLevel": "BF16",
       "contextLength": 200000,
-      "family": "minimax",
-      "hasVision": false,
-      "hasTools": true
+      "family": "minimax"
     },
     {
       "name": "minimax-m2.1",
@@ -209,9 +173,7 @@
       "parameterSize": null,
       "quantizationLevel": "BF16",
       "contextLength": 200000,
-      "family": "minimax",
-      "hasVision": false,
-      "hasTools": false
+      "family": "minimax"
     },
     {
       "name": "minimax-m2.5",
@@ -225,9 +187,7 @@
       "parameterSize": null,
       "quantizationLevel": "BF16",
       "contextLength": 204800,
-      "family": "minimax",
-      "hasVision": false,
-      "hasTools": false
+      "family": "minimax"
     },
     {
       "name": "minimax-m2.7",
@@ -242,9 +202,7 @@
       "parameterSize": null,
       "quantizationLevel": null,
       "contextLength": 204800,
-      "family": "minimax",
-      "hasVision": false,
-      "hasTools": true
+      "family": "minimax"
     },
     {
       "name": "nemotron-3-nano:30b",
@@ -257,14 +215,10 @@
         "tool-use"
       ],
       "description": "Efficient open model family for agentic tasks with strong reasoning and coding performance.",
-      "parameterSize": [
-        "30B"
-      ],
+      "parameterSize": "30B",
       "quantizationLevel": "BF16",
       "contextLength": 1000000,
-      "family": "nemotron",
-      "hasVision": false,
-      "hasTools": true
+      "family": "nemotron"
     },
     {
       "name": "nemotron-3-nano:4b",
@@ -277,14 +231,10 @@
         "tool-use"
       ],
       "description": "Efficient open model family for agentic tasks with strong reasoning and coding performance.",
-      "parameterSize": [
-        "4B"
-      ],
+      "parameterSize": "4B",
       "quantizationLevel": "BF16",
       "contextLength": 1000000,
-      "family": "nemotron",
-      "hasVision": false,
-      "hasTools": true
+      "family": "nemotron"
     },
     {
       "name": "nemotron-3-super",
@@ -299,9 +249,7 @@
       "parameterSize": "120B (12B active)",
       "quantizationLevel": "BF16",
       "contextLength": 1000000,
-      "family": "nemotron",
-      "hasVision": false,
-      "hasTools": true
+      "family": "nemotron"
     },
     {
       "name": "qwen3",
@@ -313,20 +261,10 @@
         "reasoning"
       ],
       "description": "General-purpose Qwen model family with strong reasoning and tool-use capabilities.",
-      "parameterSize": [
-        "0.8B",
-        "2B",
-        "4B",
-        "9B",
-        "27B",
-        "35B",
-        "122B"
-      ],
+      "parameterSize": "0.8B / 2B / 4B / 9B / 27B / 35B / 122B",
       "quantizationLevel": "BF16",
       "contextLength": 262144,
-      "family": "qwen3",
-      "hasVision": false,
-      "hasTools": true
+      "family": "qwen3"
     },
     {
       "name": "qwen3.5:397b",
@@ -338,14 +276,10 @@
         "reasoning"
       ],
       "description": "General-purpose Qwen model family with strong reasoning and tool-use capabilities.",
-      "parameterSize": [
-        "397B"
-      ],
+      "parameterSize": "397B",
       "quantizationLevel": "BF16",
       "contextLength": 262144,
-      "family": "qwen3",
-      "hasVision": false,
-      "hasTools": true
+      "family": "qwen3"
     },
     {
       "name": "qwen3-next:80b",
@@ -360,9 +294,7 @@
       "parameterSize": "80B",
       "quantizationLevel": "BF16",
       "contextLength": 262144,
-      "family": "qwen3",
-      "hasVision": false,
-      "hasTools": true
+      "family": "qwen3"
     },
     {
       "name": "qwen3-coder:30b",
@@ -374,14 +306,10 @@
         "tool-use"
       ],
       "description": "High-performance coding models for long-context and agentic programming.",
-      "parameterSize": [
-        "30B"
-      ],
+      "parameterSize": "30B",
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "qwen3-coder",
-      "hasVision": false,
-      "hasTools": true
+      "family": "qwen3-coder"
     },
     {
       "name": "qwen3-coder:80b",
@@ -393,14 +321,10 @@
         "tool-use"
       ],
       "description": "High-performance coding models for long-context and agentic programming.",
-      "parameterSize": [
-        "80B"
-      ],
+      "parameterSize": "80B",
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "qwen3-coder",
-      "hasVision": false,
-      "hasTools": true
+      "family": "qwen3-coder"
     },
     {
       "name": "qwen3-coder-next",
@@ -415,9 +339,7 @@
       "parameterSize": null,
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "qwen3-coder",
-      "hasVision": false,
-      "hasTools": true
+      "family": "qwen3-coder"
     },
     {
       "name": "qwen3-vl:235b",
@@ -430,14 +352,10 @@
         "reasoning"
       ],
       "description": "Advanced multimodal model for vision-language understanding and reasoning.",
-      "parameterSize": [
-        "235B"
-      ],
+      "parameterSize": "235B",
       "quantizationLevel": "BF16",
       "contextLength": 262144,
-      "family": "qwen3-vl",
-      "hasVision": true,
-      "hasTools": true
+      "family": "qwen3-vl"
     },
     {
       "name": "kimi-k2",
@@ -451,9 +369,7 @@
       "parameterSize": null,
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "kimi",
-      "hasVision": false,
-      "hasTools": false
+      "family": "kimi"
     },
     {
       "name": "kimi-k2:1t",
@@ -467,9 +383,7 @@
       "parameterSize": "1t",
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "kimi",
-      "hasVision": false,
-      "hasTools": false
+      "family": "kimi"
     },
     {
       "name": "kimi-k2.5",
@@ -485,9 +399,7 @@
       "parameterSize": null,
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "kimi",
-      "hasVision": true,
-      "hasTools": true
+      "family": "kimi"
     },
     {
       "name": "kimi-k2-thinking",
@@ -501,9 +413,7 @@
       "parameterSize": null,
       "quantizationLevel": "INT4",
       "contextLength": 256000,
-      "family": "kimi",
-      "hasVision": false,
-      "hasTools": false
+      "family": "kimi"
     },
     {
       "name": "deepseek-v3.1:671b",
@@ -518,9 +428,7 @@
       "parameterSize": "671B",
       "quantizationLevel": "BF16",
       "contextLength": 128000,
-      "family": "deepseek",
-      "hasVision": false,
-      "hasTools": true
+      "family": "deepseek"
     },
     {
       "name": "deepseek-v3.2",
@@ -534,9 +442,7 @@
       "parameterSize": null,
       "quantizationLevel": "BF16/FP8",
       "contextLength": 163840,
-      "family": "deepseek",
-      "hasVision": false,
-      "hasTools": false
+      "family": "deepseek"
     },
     {
       "name": "devstral-2:123b",
@@ -551,9 +457,7 @@
       "parameterSize": "123B",
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "devstral",
-      "hasVision": false,
-      "hasTools": true
+      "family": "devstral"
     },
     {
       "name": "devstral-small-2:24b",
@@ -569,9 +473,7 @@
       "parameterSize": "24B",
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "devstral",
-      "hasVision": true,
-      "hasTools": true
+      "family": "devstral"
     },
     {
       "name": "mistral-large-3",
@@ -584,9 +486,7 @@
       "parameterSize": "675B (12B active)",
       "quantizationLevel": "BF16",
       "contextLength": 256000,
-      "family": "mistral",
-      "hasVision": false,
-      "hasTools": false
+      "family": "mistral"
     },
     {
       "name": "cogito-2.1:671b",
@@ -599,9 +499,7 @@
       "parameterSize": "671B",
       "quantizationLevel": null,
       "contextLength": 32768,
-      "family": "cogito",
-      "hasVision": false,
-      "hasTools": false
+      "family": "cogito"
     },
     {
       "name": "rnj-1:8b",
@@ -616,9 +514,7 @@
       "parameterSize": "8B",
       "quantizationLevel": "BF16",
       "contextLength": 32768,
-      "family": "rnj",
-      "hasVision": false,
-      "hasTools": true
+      "family": "rnj"
     },
     {
       "name": "gpt-oss:120b",
@@ -630,14 +526,10 @@
         "tool-use"
       ],
       "description": "Open-weight reasoning models for agentic and developer workflows.",
-      "parameterSize": [
-        "120B"
-      ],
+      "parameterSize": "120B",
       "quantizationLevel": "MXFP4",
       "contextLength": 131072,
-      "family": "gpt-oss",
-      "hasVision": false,
-      "hasTools": true
+      "family": "gpt-oss"
     },
     {
       "name": "gpt-oss:20b",
@@ -649,14 +541,10 @@
         "tool-use"
       ],
       "description": "Open-weight reasoning models for agentic and developer workflows.",
-      "parameterSize": [
-        "20B"
-      ],
+      "parameterSize": "20B",
       "quantizationLevel": "MXFP4",
       "contextLength": 131072,
-      "family": "gpt-oss",
-      "hasVision": false,
-      "hasTools": true
+      "family": "gpt-oss"
     },
     {
       "name": "gemini-3-flash-preview",
@@ -671,9 +559,106 @@
       "parameterSize": null,
       "quantizationLevel": null,
       "contextLength": 1000000,
-      "family": "gemini",
-      "hasVision": true,
-      "hasTools": true
+      "family": "gemini"
+    },
+    {
+      "name": "qwen3-vl:235b-instruct",
+      "displayName": "Qwen 3 VL 235B Instruct",
+      "provider": "Alibaba",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "reasoning",
+        "vision",
+        "tool-use"
+      ],
+      "description": "The most powerful vision-language model in the Qwen model family to date.",
+      "parameterSize": "235B",
+      "quantizationLevel": null,
+      "contextLength": 256000,
+      "family": "qwen3"
+    },
+    {
+      "name": "gemma4:31b",
+      "displayName": "Gemma 4 31B",
+      "provider": "Google",
+      "capabilities": [
+        "text-generation",
+        "audio",
+        "code",
+        "reasoning",
+        "vision",
+        "tool-use"
+      ],
+      "description": "Gemma 4 models are designed to deliver frontier-level performance at each size. They are well-suited for reasoning, agentic workflows, coding, and multimodal understanding.",
+      "parameterSize": "31B",
+      "quantizationLevel": null,
+      "contextLength": 128000,
+      "family": "gemma4"
+    },
+    {
+      "name": "glm-5.1",
+      "displayName": "GLM 5.1",
+      "provider": "Zhipu",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "reasoning",
+        "tool-use"
+      ],
+      "description": "GLM-5.1 is our next-generation flagship model for agentic engineering, with significantly stronger coding capabilities than its predecessor. It achieves state-of-the-art performance on SWE-Bench Pro and leads GLM-5 by a wide margin.",
+      "parameterSize": null,
+      "quantizationLevel": null,
+      "contextLength": 198000,
+      "family": "glm"
+    },
+    {
+      "name": "mistral-large-3:675b",
+      "displayName": "Mistral Large 3 675B",
+      "provider": "Mistral",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "vision",
+        "tool-use"
+      ],
+      "description": "A general-purpose multimodal mixture-of-experts model for production-grade tasks and enterprise workloads.",
+      "parameterSize": "675B",
+      "quantizationLevel": null,
+      "contextLength": 256000,
+      "family": "mistral"
+    },
+    {
+      "name": "kimi-k2.6",
+      "displayName": "Kimi K2.6",
+      "provider": "Moonshot AI",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "reasoning",
+        "vision",
+        "tool-use"
+      ],
+      "description": "Kimi K2.6 is an open-source, native multimodal agentic model that advances practical capabilities in long-horizon coding, coding-driven design, proactive autonomous execution, and swarm-based task orchestration.",
+      "parameterSize": null,
+      "quantizationLevel": null,
+      "contextLength": 256000,
+      "family": "kimi"
+    },
+    {
+      "name": "qwen3-coder:480b",
+      "displayName": "Qwen 3 Coder 480B",
+      "provider": "Alibaba",
+      "capabilities": [
+        "text-generation",
+        "code",
+        "tool-use"
+      ],
+      "description": "Alibaba's performant long context models for agentic and coding tasks.",
+      "parameterSize": "480B",
+      "quantizationLevel": null,
+      "contextLength": 256000,
+      "family": "qwen3"
     }
   ]
 }

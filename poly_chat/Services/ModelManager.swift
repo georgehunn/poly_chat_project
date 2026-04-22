@@ -11,7 +11,7 @@ class ModelManager: ObservableObject {
     @Published var starredModelNames: Set<String> = {
         // Default star "nemotron-3-super" on first launch
         if UserDefaults.standard.object(forKey: "starredModelNames") == nil {
-            UserDefaults.standard.set(["nemotron-3-super"], forKey: "starredModelNames")
+            UserDefaults.standard.set(["kimi-k2.6"], forKey: "starredModelNames")
         }
         let saved = UserDefaults.standard.stringArray(forKey: "starredModelNames") ?? []
         return Set(saved)
@@ -76,8 +76,6 @@ class ModelManager: ObservableObject {
                         modelInfo.quantizationLevel = jsonDetails.quantizationLevel
                         modelInfo.family = jsonDetails.family
                         modelInfo.contextLength = jsonDetails.contextLength
-                        modelInfo.hasVision = jsonDetails.hasVision
-                        modelInfo.hasTools = jsonDetails.hasTools
                     }
 
                     enrichedModels.append(modelInfo)
@@ -164,22 +162,24 @@ class ModelManager: ObservableObject {
             let parameterSize = details.details?.parameter_size
             let quantizationLevel = details.details?.quantization_level
             let family = details.details?.family
-            let hasVision = details.capabilities?.vision
-            let hasTools = (model.capabilities.contains("tool-use") || model.capabilities.contains("function-calling")) ?? false
             let description = details.license ?? details.parameters ?? details.modelfile ?? "No description available"
+
+            // Enrich capabilities from the API's structured fields
+            var enrichedCaps = model.capabilities
+            if details.capabilities?.vision == true, !enrichedCaps.contains("vision") {
+                enrichedCaps.append("vision")
+            }
 
             return ModelInfo(
                 name: model.name,
                 displayName: model.displayName,
                 provider: model.provider,
-                capabilities: model.capabilities,
+                capabilities: enrichedCaps,
                 description: description,
                 parameterSize: parameterSize,
                 quantizationLevel: quantizationLevel,
                 family: family,
-                contextLength: contextLength,
-                hasVision: hasVision,
-                hasTools: hasTools
+                contextLength: contextLength
             )
         } catch {
             print("API call failed for model \(model.name): \(error)")
@@ -219,8 +219,6 @@ class ModelManager: ObservableObject {
                     quantizationLevel: modelData["quantizationLevel"] as? String,
                     family: modelData["family"] as? String,
                     contextLength: modelData["contextLength"] as? Int,
-                    hasVision: modelData["hasVision"] as? Bool,
-                    hasTools: modelData["hasTools"] as? Bool
                 )
                 cache[name] = modelInfo
             }

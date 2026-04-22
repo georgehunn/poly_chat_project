@@ -37,7 +37,7 @@ struct InfoView: View {
                     // Ollama Information
                     InfoSectionView(title: "About Poly_Chat") {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Poly_Chat is an open source oroject that allows you to access LLMs via api while keeping ownership over your data. We save nothing on the cloud (check with api provider for their specific policy)")
+                            Text("Poly_Chat is an open source project that allows you to access LLMs via api while keeping ownership over your data. We save nothing on the cloud (check with api provider for their specific policy)")
                                 .padding(.bottom, 5)
 
                             Link("Project website", destination: URL(string: "https://www.polychat.me")!)
@@ -135,37 +135,6 @@ struct InfoView: View {
                                 .padding(.top, 6)
                     }
 }
-
-                    // Ollama Information
-                    InfoSectionView(title: "About Poly_Chat") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Poly_Chat is an open source oroject that allows you to access LLMs via api while keeping ownership over your data. We save nothing on the cloud (check with api provider for their specific policy)")
-                                .padding(.bottom, 5)
-
-                            Link("Project website", destination: URL(string: "https://www.polychat.me")!)
-                                .foregroundColor(.blue)
-                                .underline()
-                            
-
-                            Link("Project on github", destination: URL(string: "https://github.com/georgehunn/poly_chat_project")!)
-                                .foregroundColor(.blue)
-                                .underline()
-                            Text("If you enjoy this app, please consider giving it a star ⭐️. If you'd like to contribute, check out the GitHub repo or feel free to reach out.")
-                                .padding(.vertical, 2)
-
-                            Text("Values:")
-                                .fontWeight(.semibold)
-                                .padding(.top, 5)
-
-                            Text("1. Control - Use the models you want, switch anytime.")
-                                .padding(.vertical, 2)
-                            Text("2. Privacy first - Your data stays on your device.")
-                                .padding(.vertical, 2)
-                            Text("3. Useful > flashy - Useful features that support how people actually use AI.")
-                                .padding(.vertical, 2)
-
-                        }
-                    }
 
                     // Tips
                     InfoSectionView(title: "Tips") {

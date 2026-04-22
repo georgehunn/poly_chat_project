@@ -106,8 +106,16 @@ struct ModelInfo: Codable, Hashable {
     var quantizationLevel: String?
     var family: String?
     var contextLength: Int?
-    var hasVision: Bool?
-    var hasTools: Bool?
+
+    /// Derived from capabilities — true if the model can process images.
+    var hasVision: Bool {
+        capabilities.contains("vision") || capabilities.contains("multimodal")
+    }
+
+    /// Derived from capabilities — true if the model supports tool/function calling.
+    var hasTools: Bool {
+        capabilities.contains("tool-use") || capabilities.contains("function-calling")
+    }
 
     init(
         name: String,
@@ -119,9 +127,7 @@ struct ModelInfo: Codable, Hashable {
         parameterSize: String? = nil,
         quantizationLevel: String? = nil,
         family: String? = nil,
-        contextLength: Int? = nil,
-        hasVision: Bool? = nil,
-        hasTools: Bool? = nil
+        contextLength: Int? = nil
     ) {
         self.name = name
         self.displayName = displayName
@@ -133,8 +139,6 @@ struct ModelInfo: Codable, Hashable {
         self.quantizationLevel = quantizationLevel
         self.family = family
         self.contextLength = contextLength
-        self.hasVision = hasVision
-        self.hasTools = hasTools
     }
 
     var apiProviderName: String {

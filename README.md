@@ -149,6 +149,21 @@ xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'pla
 4. Add unit tests for new service logic
 5. Maintain privacy-focused data handling
 
+### Keeping model data up to date
+
+Model descriptions, capabilities, and specs are stored in `poly_chat/Resources/model_details.json` and bundled at build time. When new models are added to the Ollama cloud API they won't have details until this file is updated.
+
+Use the enrichment script to check for and fill in new models:
+
+```bash
+pip install -r scripts/requirements.txt       # one-time setup
+
+python scripts/enrich_model_details.py --dry-run   # preview new models
+python scripts/enrich_model_details.py             # write changes
+```
+
+Then rebuild. See [`poly_chat/Resources/MODEL_DETAILS_README.md`](poly_chat/Resources/MODEL_DETAILS_README.md) for the full workflow.
+
 ### Contributing
 1. Fork the repository
 2. Create a feature branch
@@ -189,7 +204,7 @@ xcodebuild test -project Poly_Chat.xcodeproj -scheme poly_chat -destination 'pla
 - [x] websearch
 - [x] Any OpenAI-compatible API: Configurable endpoint + API key
 - [x] stop button (when a model is thinking too long)
-- [ ] Improve model details page (currently manual update - database connection with list of modules and details,tags,capabilities etc.)
+- [x] Improve model details page (auto-enrichment script scrapes ollama.com for descriptions, capabilities, context lengths)
 - [ ] Way for users to share reviews on models. 
 - [ ] Optional backup functionality with encryption
 - [ ] some way to understand how the app is being used - to enable data driven development (needs to be transparent and anonymous)
