@@ -149,6 +149,8 @@ struct SettingsView: View {
                     .foregroundColor(.red)
                 }
 
+                AnalyticsSettingsSection()
+
                 Section(header: Text("About")) {
                     Text("PolyChat v1.0")
                     Text("Open source AI chat application")

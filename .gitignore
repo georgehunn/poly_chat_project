@@ -40,6 +40,9 @@ Carthage/Build/
 .env
 *.env.local
 
+# Analytics config contains Supabase credentials — use AnalyticsConfig.swift.template
+poly_chat/Services/AnalyticsConfig.swift
+
 # Stale root-level source duplicates (real source is in poly_chat/)
 /Models/
 /Services/

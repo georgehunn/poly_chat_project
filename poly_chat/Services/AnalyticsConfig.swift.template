@@ -1,0 +1,16 @@
+import Foundation
+
+// ============================================================
+// SETUP: Copy this file to AnalyticsConfig.swift and fill in
+// your Supabase credentials. AnalyticsConfig.swift is gitignored.
+//
+// To get these values:
+// 1. Create a free project at https://supabase.com
+// 2. Run supabase_setup.sql in the SQL Editor
+// 3. Go to Settings > API for your URL and anon key
+// ============================================================
+
+enum AnalyticsConfig {
+    static let supabaseURL = "https://YOUR_PROJECT.supabase.co"
+    static let supabaseAnonKey = "YOUR_ANON_KEY"
+}

@@ -8,7 +8,9 @@ struct ContentView: View {
     @State private var showingInfo = false
     @State private var showingModelSelection = false
     @State private var showingAPIConfig = true
+    @State private var showingAnalytics = false
     @State private var selectedConversationId: UUID?
+    @AppStorage("analyticsEnabled") private var analyticsEnabled = true
 
     var body: some View {
         NavigationView {
@@ -35,10 +37,18 @@ struct ContentView: View {
                             Image(systemName: "questionmark.circle")
                         }
                     },
-                    trailing: Button(action: {
-                        showingSettings = true
-                    }) {
-                        Image(systemName: "gear")
+                    trailing: HStack(spacing: 16) {
+                        Button(action: {
+                            showingAnalytics = true
+                        }) {
+                            Image(systemName: "chart.bar.xaxis")
+                                .foregroundColor(analyticsEnabled ? .blue : .red)
+                        }
+                        Button(action: {
+                            showingSettings = true
+                        }) {
+                            Image(systemName: "gear")
+                        }
                     }
                 )
                 .sheet(isPresented: $showingSettings) {
@@ -58,6 +68,9 @@ struct ContentView: View {
                     }
                     .environmentObject(modelManager)
                     .environmentObject(chatManager)
+                }
+                .sheet(isPresented: $showingAnalytics) {
+                    AnalyticsDashboardView()
                 }
                 .sheet(isPresented: $showingAPIConfig) {
                     APIConfigPopup()

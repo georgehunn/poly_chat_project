@@ -60,4 +60,17 @@ class SecureStorageService {
     func deleteCustomProviders() -> Bool {
         return KeychainService.shared.delete(service: serviceName, account: "customProviders")
     }
+
+    // MARK: - Analytics Device ID
+
+    func saveDeviceId(_ id: UUID) -> Bool {
+        guard let data = id.uuidString.data(using: .utf8) else { return false }
+        return KeychainService.shared.save(service: serviceName, account: "analyticsDeviceId", data: data)
+    }
+
+    func getDeviceId() -> UUID? {
+        guard let data = KeychainService.shared.load(service: serviceName, account: "analyticsDeviceId"),
+              let string = String(data: data, encoding: .utf8) else { return nil }
+        return UUID(uuidString: string)
+    }
 }

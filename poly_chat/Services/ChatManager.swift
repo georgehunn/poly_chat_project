@@ -123,7 +123,7 @@ class ChatManager: ObservableObject {
             let documentAttachment = try await PDFDocumentService.shared.processPDF(from: pdfFileURL)
             return try await sendMessage(message, in: conversation, with: documentAttachment)
         } catch {
-            // Handle all errors as PDF processing failures
+            AnalyticsService.shared.trackError(type: "pdfProcessingFailed", domain: "pdf", conversationId: conversation.id, model: conversation.model.name, provider: conversation.model.provider)
             throw ChatError.pdfProcessingFailed(error)
         }
     }
@@ -233,6 +233,17 @@ class ChatManager: ObservableObject {
 
         // Save to local storage
         storageService.saveConversations(conversations)
+
+        // Track individual message event (also updates session aggregate)
+        let attachmentType: String?
+        if let img = imageAttachment {
+            attachmentType = img.mimeType  // e.g. "image/jpeg"
+        } else if let doc = documentAttachment {
+            attachmentType = (doc.filename as NSString).pathExtension.lowercased()  // e.g. "pdf", "txt"
+        } else {
+            attachmentType = nil
+        }
+        AnalyticsService.shared.trackMessage(role: "user", conversation: updatedConversation, attachmentType: attachmentType)
 
         // Use regular flow
         return try await sendRegularMessage(conversation: updatedConversation, conversationId: conversation.id)
@@ -373,6 +384,7 @@ class ChatManager: ObservableObject {
                     updatedConversation.updatedAt = Date()
                     conversations[idx] = updatedConversation
                     storageService.saveConversations(conversations)
+                    AnalyticsService.shared.trackMessage(role: "assistant", conversation: updatedConversation)
 
                     if needsTitleUpdate(conversation: updatedConversation) {
                         Task { [weak self] in
@@ -420,14 +432,17 @@ class ChatManager: ObservableObject {
                                     self.tavilyKeyInvalid = true
                                     self.showInvalidKeyAlert = true
                                 }
+                                AnalyticsService.shared.trackError(type: "WebSearchError.invalidKey", domain: "websearch", conversationId: conversation.id, model: conversation.model.name, provider: conversation.model.provider)
                                 result = "Web search failed: API key is invalid."
                             } catch WebSearchService.WebSearchError.outOfCredits {
                                 print("[ToolLoop] Search FAILED — out of credits")
                                 DispatchQueue.main.async { self.showOutOfCreditsAlert = true }
+                                AnalyticsService.shared.trackError(type: "WebSearchError.outOfCredits", domain: "websearch", conversationId: conversation.id, model: conversation.model.name, provider: conversation.model.provider)
                                 result = "Web search unavailable: API credits exhausted."
                             } catch {
                                 print("[ToolLoop] Search FAILED: \(error)")
                                 DispatchQueue.main.async { self.showWebSearchFailedAlert = true }
+                                AnalyticsService.shared.trackError(type: "WebSearchError.general", domain: "websearch", conversationId: conversation.id, model: conversation.model.name, provider: conversation.model.provider)
                                 result = "Web search failed: \(error.localizedDescription)"
                             }
                         } else {
@@ -439,6 +454,7 @@ class ChatManager: ObservableObject {
                         print("[ToolLoop] Tool result: \(call.id.prefix(12)) → \(call.name) → \(result.count) chars")
                         let toolResultMsg = Message(id: UUID(), role: .tool, content: result, timestamp: Date(), toolCallId: call.id, toolName: call.name)
                         workingMessages.append(toolResultMsg)
+                        AnalyticsService.shared.trackMessage(role: "tool", conversation: conversation, toolName: call.name)
                     }
                 }
             }
@@ -520,6 +536,7 @@ class ChatManager: ObservableObject {
             print("[ToolLoop] CAUGHT ERROR: \(error)")
             print("[ToolLoop] ── END (error) ──────────────────────────")
             activeToolName = nil
+            AnalyticsService.shared.trackError(type: String(describing: type(of: error)), domain: "chat", conversationId: conversationId, model: conversation.model.name, provider: conversation.model.provider)
             let errorContent = "Error: \(error.localizedDescription)"
             let errorMsg = Message(id: UUID(), role: .assistant, content: errorContent, timestamp: Date())
             if let idxError = conversationIndex(for: conversationId) {
